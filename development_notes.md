@@ -50,6 +50,6 @@
 - [ ] Evaluate the trained model's performance on the test set.
 
 ## General checklist
-- Did you document your code well? Could your girlfriend/parent/computerphobic cousing tell what is going on in the code?
+- Did you document your code well? Could your girlfriend/parent/computerphobic cousin tell what is going on in the code?
 - Did you write unit tests for the parts you developed? Did you push them?
 - Did you update this checklist?
