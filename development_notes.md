@@ -3,12 +3,11 @@
 # QANTA from scratch
 
 ## Preprocessing
-- [ ] Parse CSV (using built-in csv module)
+- [x] Parse CSV (using built-in csv module)
 - [ ] Ensure division in train, test sets is kept
-- [ ] Apply Stanford Parser to question sentences, get dependency tree as text
-    + Look into python interfaces for Standford Parser.
-        * Consider [this](https://pypi.python.org/pypi/corenlp-python) or [this](https://projects.csail.mit.edu/spatial/Stanford_Parser), or whatever appears to be most fail-safe.
-        * Our current problem is that it drops sentences when it is out of memory, and that it has a deluge of output that drowns out other informations.
+- [x] Apply Stanford Parser to question sentences, get dependency tree as text
+    + [ ] Check whether it drops sentences when it is out of memory
+    + [ ] Check whether it splits sentence strings that are, in fact, two or more sentences. This happens in the question in line 136 in the 20k dataset.
 - [ ] Build a word vocabulary that maps words to indices (later to be used in fetching word embeddings).
     + Either as a list where vocabulary.index(word) gives an index, or as a dict, where vocabulary[word] gives an index.
     + Make sure to include the answer strings in the vocab. They need to have their own embedded representations.

@@ -1,5 +1,6 @@
 # Local config file to be used with config.py
 local_config
+local
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
