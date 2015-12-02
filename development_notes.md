@@ -35,7 +35,7 @@
 - [x] Initialize word and dependency embeddings, and the additional matrix and bias
 - [ ] Look into what is considered best practice for initialization of vectors and matrices
 - [ ] Consider initializing as many words as possible with precomputed vectors, such as those from word2vec
-- [ ] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
+- [x] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
 - [ ] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
     + [ ] Implement a method (e.g. `QANTAModel.sentence_error`) that calculates eq. 5, given
         * a sentence tree
