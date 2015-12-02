@@ -27,14 +27,14 @@
 - [ ] Figure out a meaningful way of storing trees, word vocabulary, dependency list
 
 ## Model training
-- [ ] Create a QANTAModel class with
+- [x] Create a QANTAModel class with
     + A vector (word embedding) for each word in the vocabulary
     + A matrix (dependency embedding) for each dependency in the dependency list
-    + The ``additional matrix'' W_v (eq. 1 description)
-    + The bias term **(is the bias term the same for all hidden vectors??)**
-- [ ] Initialize word and dependency embeddings, and the additional matrix
-    + Look into what is considered best practice for initialization of vectors and matrices
-    + Consider initializing as many words as possible with precomputed vectors, such as those from word2vec
+    + The global ``additional matrix'' W_v (eq. 1 description)
+    + The global bias term
+- [x] Initialize word and dependency embeddings, and the additional matrix and bias
+- [ ] Look into what is considered best practice for initialization of vectors and matrices
+- [ ] Consider initializing as many words as possible with precomputed vectors, such as those from word2vec
 - [ ] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
 - [ ] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
     + [ ] Implement a method (e.g. `QANTAModel.sentence_error`) that calculates eq. 5, given
