@@ -21,4 +21,4 @@ def vocabulary(filen):
 				if input[k][l][1][0] in dep_vocab:
 					dep_vocab[[k][l][1][0]] = len(dep_vocab) + 1
 
-	return vocab
+	return vocab, dep_vocab
