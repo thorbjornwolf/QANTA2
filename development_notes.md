@@ -8,11 +8,11 @@
 - [x] Apply Stanford Parser to question sentences, get dependency tree as text
     + [ ] Check whether it drops sentences when it is out of memory
     + [ ] Check whether it splits sentence strings that are, in fact, two or more sentences. This happens in the question in line 136 in the 20k dataset.
-- [ ] Build a word vocabulary that maps words to indices (later to be used in fetching word embeddings).
+- [x] Build a word vocabulary that maps words to indices (later to be used in fetching word embeddings).
     + Either as a list where vocabulary.index(word) gives an index, or as a dict, where vocabulary[word] gives an index.
     + Make sure to include the answer strings in the vocab. They need to have their own embedded representations.
     + Consider whether answers should have spaces replaced with underscores, or whether we just keep them as a string with spaces.
-- [ ] Build a dependency list (in fact an ordered set or vocabulary; only unique entries) that allows mapping a dependency string to an integer (later to be used for fetching the dependency matrix)
+- [x] Build a dependency list (in fact an ordered set or vocabulary; only unique entries) that allows mapping a dependency string to an integer (later to be used for fetching the dependency matrix)
     + Same remarks as for the word vocabulary
 - [ ] Convert Stanford Parser dependency tree text to actual tree data structure
     + [ ] Create and use a class `DependencyNode`:
