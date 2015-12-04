@@ -4,6 +4,7 @@ import os
 import datetime as datetime
 from nltk.parse import stanford
 from config import get_config
+from dependency_tree import tree_from_stanford_parse_tuples
 
 def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' ||| ' ):
 	"""Builds a list of lists, each of which represents a line in the csv.
@@ -117,12 +118,15 @@ def dependency_parse(sentences_path, target_path=None):
 	with open(target_path, 'wb') as f:
 		cPickle.dump(output, f)
 
-def vocabulary(filen, vocabulary_path=None, dependency_path=None):
+def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
 	"""Takes a file as input, unpickles it and add every entity 
 	of it to the vocabulary. Returns vocabulary."""
 
 	with open (filen, 'rb') as f:
 		input =  cPickle.load(f)
+
+	with open (answers_path, 'rb') as f:
+		answers =  cPickle.load(f)
 
 	vocab = {}
 	dep_vocab = {}
@@ -142,22 +146,56 @@ def vocabulary(filen, vocabulary_path=None, dependency_path=None):
 				else:
 					dep_vocab[input[k][l][2][m][0]] = len(dep_vocab)
 
+	for element in answers:
+		if element not in vocab:
+			vocab[element] = len(vocab)
+
 	with open(vocabulary_path, 'wb') as f:
 		cPickle.dump(vocab, f)
 
 	with open(dependency_path, 'wb') as f:
 		cPickle.dump(dep_vocab, f)
 
+def create_tree(sentences_path, sentence_ID_path, question_info_path, vocabulary_path, dependency_path, stanford_parsed_path, tree_list_path):
+	tree_list = []
+
+	with open (sentences_path, 'rb') as f:
+		sentences =  cPickle.load(f)
+
+	with open (sentence_ID_path, 'rb') as f:
+		sentences_ID =  cPickle.load(f)
+
+	with open (question_info_path, 'rb') as f:
+		question_info =  cPickle.load(f)
+
+	with open (vocabulary_path, 'rb') as f:
+		vocabulary =  cPickle.load(f)
+
+	with open (dependency_path, 'rb') as f:
+		dependency =  cPickle.load(f)
+
+	with open (stanford_parsed_path, 'rb') as f:
+		stanford_parsed =  cPickle.load(f)
+
+	for k in range(len(sentences)):
+		answer = question_info[sentences_ID[k]][2]
+		answer_index = vocabulary[answer]
+		tree_list.append(tree_from_stanford_parse_tuples(stanford_parsed[k], answer_index, vocabulary, dependency))
+
+	with open(tree_list_path, 'wb') as f:
+		cPickle.dump(tree_list, f)
+
 def process(csv_file, output_file, verbosity, process_dir, start_from):
 
-	parsed_csv_path = os.path.join(process_dir, "parsed_csv")
-	sentence_ID_path = os.path.join(process_dir, "sentence_ID")
-	sentences_path = os.path.join(process_dir, "sentences")
-	answers_path = os.path.join(process_dir, "answers")
-	question_info_path = os.path.join(process_dir, "question_info")
-	stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
+	parsed_csv_path = os.path.join(process_dir, "parsed_csv") #CSV imported
+	sentence_ID_path = os.path.join(process_dir, "sentence_ID") #all the sentence_IDs in a list
+	sentences_path = os.path.join(process_dir, "sentences") #all sentences in a list
+	answers_path = os.path.join(process_dir, "answers") #answers in a list
+	question_info_path = os.path.join(process_dir, "question_info") #dictionary with all info
+	stanford_parsed_path = os.path.join(process_dir, "stanford_parsed") 
 	vocabulary_path = os.path.join(process_dir, "vocabulary")
 	dependency_path = os.path.join(process_dir, "dependency_path")
+	tree_list_path = os.path.join(process_dir, "tree_list_path")
 
 	"""question_index_path = os.path.join(process_dir, "question_index")
 	isolated_questions_path = os.path.join(process_dir, "isolated_questions")
@@ -172,7 +210,9 @@ def process(csv_file, output_file, verbosity, process_dir, start_from):
 	if start_from <= 3:
 		dependency_parse(sentences_path, stanford_parsed_path)
 	if start_from <= 4:
-		vocabulary(stanford_parsed_path, vocabulary_path, dependency_path)
+		vocabulary(stanford_parsed_path, answers_path, vocabulary_path, dependency_path)
+	if start_from <= 5: 
+		create_tree(sentences_path, sentence_ID_path, question_info_path, vocabulary_path, dependency_path, stanford_parsed_path, tree_list_path)
 
 
 def main():

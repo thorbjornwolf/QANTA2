@@ -4,7 +4,7 @@
 
 ## Preprocessing
 - [x] Parse CSV (using built-in csv module)
-- [ ] Ensure division in train, test sets is kept
+- [x] Ensure division in train, test sets is kept
 - [x] Apply Stanford Parser to question sentences, get dependency tree as text
     + [ ] Check whether it drops sentences when it is out of memory
     + [ ] Check whether it splits sentence strings that are, in fact, two or more sentences. This happens in the question in line 136 in the 20k dataset.
