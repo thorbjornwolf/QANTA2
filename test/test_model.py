@@ -7,10 +7,10 @@ import numpy as np
 import model
 
 class TestNode(object):
-    def __init__(self, word_index, children=None, dependency_index=None):
-        self.word_index = word_index
+    def __init__(self, word, children=None, dependency=None):
+        self.word = word
         self.children = children or []
-        self.dependency_index = dependency_index
+        self.dependency = dependency
 
     def n_nodes(self):
         s = sum([n.n_nodes() for n in self.children])
@@ -25,9 +25,9 @@ class TestNode(object):
         return nodes
 
 class TestTree(object):
-    def __init__(self, root, answer_index):
+    def __init__(self, root, answer):
         self.root = root
-        self.answer_index = answer_index
+        self.answer = answer
 
     def n_nodes(self):
         return self.root.n_nodes()
@@ -72,8 +72,8 @@ class TestInitialization(unittest.TestCase):
         q.b = np.array([-2, -3, 1])
 
 
-        b = TestNode(1, None, 0)
-        root = TestNode(0, [b])
+        b = TestNode('bravo', None, 'prep')
+        root = TestNode('alpha', [b])
 
         expected = np.ones(d)
         self.assertTrue(np.allclose(q.get_node_representation(root), expected))
@@ -82,12 +82,12 @@ class TestInitialization(unittest.TestCase):
         vocab = {'alpha':0, 'bravo':1, '42':2, 'not 42':3, 'also wrong':4}
         deplist = {'prep':0}
         d = 3
-        answers = {2, 3, 4}
+        answers = ['42', 'not 42']
 
-        b = TestNode(1, None, 0)
-        root = TestNode(0, [b])
+        b = TestNode('bravo', None, 'prep')
+        root = TestNode('alpha', [b])
 
-        tt = TestTree(root, 0)
+        tt = TestTree(root, 'bravo')
 
         q = model.QANTA(d, vocab, deplist, answers)
         q.train([tt])
