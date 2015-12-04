@@ -41,8 +41,8 @@ class DependencyTree(object):
     Internal representation uses only indices, not actual words
     """
 
-    def __init__(self, question_id):
-        self.question_id = question_id
+    def __init__(self, answer_index):
+        self.answer_index = answer_index
 
     def add(self, node, parent_sentence_index=None):
         """Inserts a node into the tree structure. 
@@ -72,7 +72,7 @@ class DependencyTree(object):
         return self.root.iter_nodes()
 
     def __repr__(self):
-        s = "DependencyTree qid:{}, n_nodes:{}".format(self.question_id, 
+        s = "DependencyTree ai:{}, n_nodes:{}".format(self.answer_index, 
                 self.n_nodes())
         return '\n'.join([s, self.root.__repr__('    ')])
 
