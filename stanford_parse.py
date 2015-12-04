@@ -36,8 +36,9 @@ def dependency_parse(sentences):
     # E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser-3.5.2-models.jar
     os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
 
-    parser = stanford.StanfordDependencyParser()
+    parser = stanford.StanfordDependencyParser(java_options='-mx10000m')
     # We can set java options through java_options. They default to '-mx1000m'
+    # Here set to ~10GB
 
     parsed = parser.raw_parse_sents(sentences)
 
