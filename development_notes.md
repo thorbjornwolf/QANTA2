@@ -37,11 +37,12 @@
 - [ ] Consider initializing as many words as possible with precomputed vectors, such as those from word2vec
 - [ ] Remove stopwords c.f. the original qanta code.
 - [x] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
+- [ ] Figure out why the original QANTA implementation does not use the `rank` calculation (eq 5)
 - [ ] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
-    + [ ] Implement a method (e.g. `QANTAModel.sentence_error`) that calculates eq. 5, given
+    + [x] Implemented a method `QANTA.sentence_error` that calculates eq. 5, given
         * a sentence tree
-        * a number, indicating how many incorrect answers it should sample
-    + [ ] Calculate objective function (eq. 6)
+        * a list of incorrect answers
+    + [x] Calculate objective function (eq. 6) (model.py:94)
     + [ ] Do backpropagation through structure / AdaGrad (eq. 7 and supplementary reading)
 - [ ] Build an overall method `QANTAModel.predict` that, given a tree returns the most likely answer (from the set of possible answers)
 - [ ] Actually train a model on the training set
