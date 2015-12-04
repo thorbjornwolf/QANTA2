@@ -194,8 +194,8 @@ def process(csv_file, output_file, verbosity, process_dir, start_from):
 	question_info_path = os.path.join(process_dir, "question_info") #dictionary with all info
 	stanford_parsed_path = os.path.join(process_dir, "stanford_parsed") 
 	vocabulary_path = os.path.join(process_dir, "vocabulary")
-	dependency_path = os.path.join(process_dir, "dependency_path")
-	tree_list_path = os.path.join(process_dir, "tree_list_path")
+	dependency_path = os.path.join(process_dir, "dependency_vocabulary")
+	tree_list_path = os.path.join(process_dir, "tree_list")
 
 	"""question_index_path = os.path.join(process_dir, "question_index")
 	isolated_questions_path = os.path.join(process_dir, "isolated_questions")
