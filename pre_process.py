@@ -5,12 +5,6 @@ import datetime as datetime
 from nltk.parse import stanford
 from config import get_config
 
-
-
-
-
-
-
 def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' ||| ' ):
 	"""Builds a list of lists, each of which represents a line in the csv.
 	Note that the 5th element in each line is itself a list.
@@ -38,7 +32,7 @@ def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' 
 	with open(target_path, 'wb') as f:
 		cPickle.dump(csv_questions, f)
 
-def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, question_info_path):
+def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, answers_path, question_info_path):
 	"""Takes the raw CSV-text as input and outputs each sentence from all the 
 	questions. Another list containing the question ID is also outputed."""
 
@@ -47,23 +41,26 @@ def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, questio
 
 	sentence_ID = []
 	sentences = []
+	answers = []
 	question_information = {}
 
 	for questions in csv_questions:
 		question_information[questions[0]] = [questions[1], questions[2], questions[3]]
+		if questions[3] not in answers:
+			answers.append(questions[3])
+
 		for sentence in questions[4]:
 			sentences.append(sentence)
 			sentence_ID.append(questions[0])
-
-	"""sentence_ID_path = os.path.join(target_path, "sentence_ID")
-	sentences_path = os.path.join(target_path, "sentences")
-	question_info_path = os.path.join(target_path, "question_info")"""
 
 	with open(sentence_ID_path, 'wb') as f:
 		cPickle.dump(sentence_ID, f)
 
 	with open(sentences_path, 'wb') as f:
 		cPickle.dump(sentences, f)
+
+	with open(answers_path, 'wb') as f:
+		cPickle.dump(answers, f)
 
 	with open(question_info_path, 'wb') as f:
 		cPickle.dump(question_information, f)
@@ -91,6 +88,7 @@ def dependency_parse(sentences_path, target_path=None):
 	where dependencies are the tuple (dependency_name, [dep1, dep2, ...])
 		dep1, dep2 being index_in_sentence for the dependent words
 	"""
+
 	with open(sentences_path, 'rb') as sentencesfile:
 		sentences = cPickle.load(sentencesfile)
 
@@ -116,57 +114,73 @@ def dependency_parse(sentences_path, target_path=None):
 			
 		output.append(nodes)
 
-	return output
+	with open(target_path, 'wb') as f:
+		cPickle.dump(output, f)
 
-def vocabulary(filen, target_path=None):
+def vocabulary(filen, vocabulary_path=None, dependency_path=None):
 	"""Takes a file as input, unpickles it and add every entity 
 	of it to the vocabulary. Returns vocabulary."""
 
 	with open (filen, 'rb') as f:
-		input =  pickle.load(f)
+		input =  cPickle.load(f)
 
 	vocab = {}
 	dep_vocab = {}
 
 	for k in range(len(input)):
 		for l in range(len(input[k])):
-			for m in [0,2]:
-				if input[k][l][m][0] in vocab:
-					pass
-				else:
-					print "added " + input[k][l][m][0]
-					vocab[input[k][l][m][0]] = len(vocab) + 1
-				if input[k][l][1][0] in dep_vocab:
-					dep_vocab[[k][l][1][0]] = len(dep_vocab) + 1
 
-	return vocab, dep_vocab
+			if input[k][l][1] in vocab:
+				pass
+			else:
+				vocab[input[k][l][1]] = len(vocab)
+
+			for m in range(len(input[k][l][2])):
+				if input[k][l][2][m][0] in dep_vocab:
+					pass
+
+				else:
+					dep_vocab[input[k][l][2][m][0]] = len(dep_vocab)
+
+	with open(vocabulary_path, 'wb') as f:
+		cPickle.dump(vocab, f)
+
+	with open(dependency_path, 'wb') as f:
+		cPickle.dump(dep_vocab, f)
 
 def process(csv_file, output_file, verbosity, process_dir, start_from):
 
 	parsed_csv_path = os.path.join(process_dir, "parsed_csv")
 	sentence_ID_path = os.path.join(process_dir, "sentence_ID")
 	sentences_path = os.path.join(process_dir, "sentences")
+	answers_path = os.path.join(process_dir, "answers")
 	question_info_path = os.path.join(process_dir, "question_info")
-
-	question_index_path = os.path.join(process_dir, "question_index")
-	isolated_questions_path = os.path.join(process_dir, "isolated_questions")
 	stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
+	vocabulary_path = os.path.join(process_dir, "vocabulary")
+	dependency_path = os.path.join(process_dir, "dependency_path")
+
+	"""question_index_path = os.path.join(process_dir, "question_index")
+	isolated_questions_path = os.path.join(process_dir, "isolated_questions")
+	
 	parsed_path = os.path.join(process_dir, "parsed")
-	log_path = os.path.join(process_dir, "log")
+	log_path = os.path.join(process_dir, "log")"""
 
 	if start_from <= 1:
 		parse_question_csv(csv_file, parsed_csv_path)
 	if start_from <= 2:
-		questions_to_sentences(parsed_csv_path, sentence_ID_path, sentences_path, question_info_path)
+		questions_to_sentences(parsed_csv_path, sentence_ID_path, sentences_path, answers_path, question_info_path)
 	if start_from <= 3:
-		dependency_parse(sentences_path)
+		dependency_parse(sentences_path, stanford_parsed_path)
+	if start_from <= 4:
+		vocabulary(stanford_parsed_path, vocabulary_path, dependency_path)
+
 
 def main():
 	import argparse
 
 	# command line arguments
 	raw_args = argparse.ArgumentParser(description='QANTA preprocessing: Going from CSV question files to QANTA format')
-	raw_args.add_argument('-s', '--source', dest='source_file', help='location of source CSV file',  type=str, default="./his-questions.csv")
+	raw_args.add_argument('-s', '--source', dest='source_file', help='location of source CSV file',  type=str, default="./his-questions-small.csv")
 	raw_args.add_argument('-o', '--output', dest='output_file', help='location of output file', type=str)
 	raw_args.add_argument('-v', '--verbosity', dest='verbosity', 
 							help=('Verbosity during processing:'
