@@ -32,7 +32,7 @@ def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' 
 	with open(target_path, 'wb') as f:
 		cPickle.dump(csv_questions, f)
 
-def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, question_info_path):
+def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, answers_path, question_info_path):
 	"""Takes the raw CSV-text as input and outputs each sentence from all the 
 	questions. Another list containing the question ID is also outputed."""
 
@@ -41,23 +41,26 @@ def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, questio
 
 	sentence_ID = []
 	sentences = []
+	answers = []
 	question_information = {}
 
 	for questions in csv_questions:
 		question_information[questions[0]] = [questions[1], questions[2], questions[3]]
+		if questions[3] not in answers:
+			answers.append(questions[3])
+
 		for sentence in questions[4]:
 			sentences.append(sentence)
 			sentence_ID.append(questions[0])
-
-	"""sentence_ID_path = os.path.join(target_path, "sentence_ID")
-	sentences_path = os.path.join(target_path, "sentences")
-	question_info_path = os.path.join(target_path, "question_info")"""
 
 	with open(sentence_ID_path, 'wb') as f:
 		cPickle.dump(sentence_ID, f)
 
 	with open(sentences_path, 'wb') as f:
 		cPickle.dump(sentences, f)
+
+	with open(answers_path, 'wb') as f:
+		cPickle.dump(answers, f)
 
 	with open(question_info_path, 'wb') as f:
 		cPickle.dump(question_information, f)
@@ -85,6 +88,7 @@ def dependency_parse(sentences_path, target_path=None):
 	where dependencies are the tuple (dependency_name, [dep1, dep2, ...])
 		dep1, dep2 being index_in_sentence for the dependent words
 	"""
+
 	with open(sentences_path, 'rb') as sentencesfile:
 		sentences = cPickle.load(sentencesfile)
 
@@ -124,9 +128,8 @@ def vocabulary(filen, vocabulary_path=None, dependency_path=None):
 	dep_vocab = {}
 
 	for k in range(len(input)):
-		#print input[k]
 		for l in range(len(input[k])):
-			#print input[k][l]
+
 			if input[k][l][1] in vocab:
 				pass
 			else:
@@ -138,45 +141,34 @@ def vocabulary(filen, vocabulary_path=None, dependency_path=None):
 
 				else:
 					dep_vocab[input[k][l][2][m][0]] = len(dep_vocab)
-	"""
-	for m in [0,2]:
-
-		if input[k][l][m][0] in vocab:
-			pass
-		else:
-			print "added " + input[k][l][m][0]
-			vocab[input[k][l][m][0]] = len(vocab) + 1
-		if input[k][l][1][0] in dep_vocab:
-			dep_vocab[[k][l][1][0]] = len(dep_vocab) + 1"""
 
 	with open(vocabulary_path, 'wb') as f:
 		cPickle.dump(vocab, f)
 
-	with open(vocabulary_path, 'wb') as f:
+	with open(dependency_path, 'wb') as f:
 		cPickle.dump(dep_vocab, f)
-
-	return vocab, dep_vocab
 
 def process(csv_file, output_file, verbosity, process_dir, start_from):
 
 	parsed_csv_path = os.path.join(process_dir, "parsed_csv")
 	sentence_ID_path = os.path.join(process_dir, "sentence_ID")
 	sentences_path = os.path.join(process_dir, "sentences")
+	answers_path = os.path.join(process_dir, "answers")
 	question_info_path = os.path.join(process_dir, "question_info")
 	stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
 	vocabulary_path = os.path.join(process_dir, "vocabulary")
 	dependency_path = os.path.join(process_dir, "dependency_path")
 
-	question_index_path = os.path.join(process_dir, "question_index")
+	"""question_index_path = os.path.join(process_dir, "question_index")
 	isolated_questions_path = os.path.join(process_dir, "isolated_questions")
 	
 	parsed_path = os.path.join(process_dir, "parsed")
-	log_path = os.path.join(process_dir, "log")
+	log_path = os.path.join(process_dir, "log")"""
 
 	if start_from <= 1:
 		parse_question_csv(csv_file, parsed_csv_path)
 	if start_from <= 2:
-		questions_to_sentences(parsed_csv_path, sentence_ID_path, sentences_path, question_info_path)
+		questions_to_sentences(parsed_csv_path, sentence_ID_path, sentences_path, answers_path, question_info_path)
 	if start_from <= 3:
 		dependency_parse(sentences_path, stanford_parsed_path)
 	if start_from <= 4:
