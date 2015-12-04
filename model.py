@@ -80,7 +80,7 @@ class QANTA(object):
         for tree in dependency_trees:
 
             # Sample from all other answers than the present one
-            incorrect_answers = self.answers.difference([tree.answer_index])
+            incorrect_answers = set(self.answers).difference([tree.answer_index])
 
             incorrect_answers = np.random.choice(list(incorrect_answers),
                                                  n_incorrect_answers, 
@@ -94,6 +94,7 @@ class QANTA(object):
         se = error / n_nodes
 
         # TODO Update weights!
+        
 
     def predict(self, dependency_trees):
         h = self.get_paragraph_representation(dependency_trees)
@@ -152,9 +153,6 @@ class QANTA(object):
         xc = self.We[answer]
         xc_dot_hs = np.dot(xc, hs)
 
-        # 1 - x_c*h_s is reused many times
-        one_minus_xc_dot_hs = 1 - xc_dot_hs
-
         for z in incorrect_answers:
             # Calculate max_term: max(0, 1 - x_c*h_s + x_z*h_s)
             xz = self.We[z]
@@ -166,11 +164,9 @@ class QANTA(object):
             # Calcuate L_term: L(rank(c,s,Z))
             # To do that, calculate rank_approx
             # NB: Original implementation did not use this!
-            # NB: We're rounding the value up: It must be int, and >= 1
-            rank_approx = np.ceil(self.approximate_rank(xc, hs,
-                                                        incorrect_answers, xc_dot_hs))
+            rank_approx = self.approximate_rank(xc, hs, incorrect_answers, xc_dot_hs)
 
-            L_term = np.sum(1. / (1 + np.arange(rank_approx)))
+            L_term = np.sum(1. / np.arange(1, rank_approx))
 
             error_per_incorrect_answer.append(L_term * max_term)
 
