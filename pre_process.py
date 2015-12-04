@@ -33,7 +33,7 @@ def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' 
 	with open(target_path, 'wb') as f:
 		cPickle.dump(csv_questions, f)
 
-def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, answers_path, question_info_path):
+def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path, sentences_path, answers_path, question_info_path):
 	"""Takes the raw CSV-text as input and outputs each sentence from all the 
 	questions. Another list containing the question ID is also outputed."""
 
@@ -46,13 +46,14 @@ def questions_to_sentences(csv_pickle, sentence_ID_path, sentences_path, answers
 	question_information = {}
 
 	for questions in csv_questions:
-		question_information[questions[0]] = [questions[1], questions[2], questions[3]]
-		if questions[3] not in answers:
-			answers.append(questions[3])
+		if questions[1] == set_choice:
+			question_information[questions[0]] = [questions[1], questions[2], questions[3]]
+			if questions[3] not in answers:
+				answers.append(questions[3])
 
-		for sentence in questions[4]:
-			sentences.append(sentence)
-			sentence_ID.append(questions[0])
+			for sentence in questions[4]:
+				sentences.append(sentence)
+				sentence_ID.append(questions[0])
 
 	with open(sentence_ID_path, 'wb') as f:
 		cPickle.dump(sentence_ID, f)
@@ -185,7 +186,7 @@ def create_tree(sentences_path, sentence_ID_path, question_info_path, vocabulary
 	with open(tree_list_path, 'wb') as f:
 		cPickle.dump(tree_list, f)
 
-def process(csv_file, output_file, verbosity, process_dir, start_from):
+def process(csv_file, output_file, set_choice, verbosity, process_dir, start_from):
 
 	parsed_csv_path = os.path.join(process_dir, "parsed_csv") #CSV imported
 	sentence_ID_path = os.path.join(process_dir, "sentence_ID") #all the sentence_IDs in a list
@@ -206,7 +207,7 @@ def process(csv_file, output_file, verbosity, process_dir, start_from):
 	if start_from <= 1:
 		parse_question_csv(csv_file, parsed_csv_path)
 	if start_from <= 2:
-		questions_to_sentences(parsed_csv_path, sentence_ID_path, sentences_path, answers_path, question_info_path)
+		questions_to_sentences(parsed_csv_path, set_choice, sentence_ID_path, sentences_path, answers_path, question_info_path)
 	if start_from <= 3:
 		dependency_parse(sentences_path, stanford_parsed_path)
 	if start_from <= 4:
@@ -222,6 +223,7 @@ def main():
 	raw_args = argparse.ArgumentParser(description='QANTA preprocessing: Going from CSV question files to QANTA format')
 	raw_args.add_argument('-s', '--source', dest='source_file', help='location of source CSV file',  type=str, default="./his-questions-small.csv")
 	raw_args.add_argument('-o', '--output', dest='output_file', help='location of output file', type=str)
+	raw_args.add_argument('--set-choice', dest='set_choice', help='what type of set to preprocess', type=str, default="train")
 	raw_args.add_argument('-v', '--verbosity', dest='verbosity', 
 							help=('Verbosity during processing:'
 								  '0: Print nothing.\n'
@@ -247,8 +249,8 @@ def main():
 		os.makedirs(args.process_dir)
 	
 	process(csv_file=args.source_file, output_file=args.output_file, 
-			verbosity=args.verbosity,  process_dir=args.process_dir, 
-			start_from=args.start_point)
+			set_choice=args.set_choice, verbosity=args.verbosity, 
+			process_dir=args.process_dir, start_from=args.start_point)
 
 if __name__ == '__main__':
 	main()
