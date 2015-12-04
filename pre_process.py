@@ -6,6 +6,11 @@ from nltk.parse import stanford
 from config import get_config
 
 
+
+
+
+
+
 def parse_question_csv(csv_path, target_path=None, skip_head=1, sub_delimiter=' ||| ' ):
 	"""Builds a list of lists, each of which represents a line in the csv.
 	Note that the 5th element in each line is itself a list.
