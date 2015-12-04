@@ -1,5 +1,6 @@
 # Import unused. Remove it.
 from collections import defaultdict
+import csv_handler
 
 # See if you can find a different name than 'main.py'
 # It sounds so preposterous, especially when it is
@@ -7,18 +8,22 @@ from collections import defaultdict
 
 #Not working yet, probably many errors
 
-def main(path):
+class Config:
+	csv_file = None
+
+	@staticmethod
+	def Init(config):
+		if 'csv_file' in config:
+			Config.csv_file = config['csv_file']
+
+def preprocessing(path):
 
 	questions=[]
 	questions_list=[]
-
+	
  	# Parse the questions from the CSV file, outputs a list
- 	# NOTE: Hardcoding local paths is a definite no-no. It's ok for early 
- 	# development, though, but should ASAP be converted to use either the 
- 	# local config or an input argument
- 	# You will need to `import csv_handler` for this to work
- 	questions = csv_handler.parse_question_csv("C:\Users\zaki\Desktop\QANTA2-master\questions20k.csv")
-
+ 	questions = csv_handler.parse_question_csv(Config.csv_file)
+	
  	# For better manageability
  	for item in questions:
  		# questions_list is simply a list, it has no method `add_question`
