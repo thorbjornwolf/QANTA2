@@ -3,16 +3,17 @@ from Queue import Queue
 
 class DependencyNode(object):
 
-    def __init__(self, word_index, sentence_index, dependency_index, children=None):
+    def __init__(self, word, index_in_sentence, dependency, children=None):
         """
-        word_index is the index of the word in the global vocabulary
-        sentence_index is the index of the word in the source sentence
-        dependency_index is the index of the parent's dependency 
-            relation to this node
+        word is the word that the node represents
+        index_in_sentence is the index of the word in the source sentence.
+            Note that this starts at 1, not 0
+        dependency is a string representing the parent's dependency relation
+            to this node
         """
-        self.word_index = word_index
-        self.sentence_index = sentence_index
-        self.dependency_index = dependency_index
+        self.word = word
+        self.index_in_sentence = index_in_sentence
+        self.dependency = dependency
         self.children = children or []
 
     def n_nodes(self):
@@ -29,7 +30,7 @@ class DependencyNode(object):
 
     def __repr__(self, prepend=''):
         s = "{}DependencyNode wi:{}, si:{}, di:{}".format(prepend, 
-            self.word_index, self.sentence_index, self.dependency_index)
+            self.word, self.index_in_sentence, self.dependency)
         output = [s]
         for c in sorted(self.children, key=lambda x: len(x.children)):
             output.append(c.__repr__(prepend+'    '))
@@ -41,27 +42,30 @@ class DependencyTree(object):
     Internal representation uses only indices, not actual words
     """
 
-    def __init__(self, answer_index):
-        self.answer_index = answer_index
+    def __init__(self, answer):
+        """answer is a string representing the correct answer
+        to the question posed by the sentence represented by this tree.
+        """
+        self.answer = answer
 
-    def add(self, node, parent_sentence_index=None):
+    def add(self, node, parent_index_in_sentence=None):
         """Inserts a node into the tree structure. 
-        Nodes are inserted breadt first, to accomodate the style of the
+        Nodes are inserted breadth first, to accomodate the style of the
             Stanford Parser output.
-        If parent_sentence_index is None, it is assumed that the node is
+        If parent_index_in_sentence is None, it is assumed that the node is
             the root node.
         """
-        if parent_sentence_index is None:
+        if parent_index_in_sentence is None:
             self.root = node
             return
-        parent = self.find_node_by_sentence_index(parent_sentence_index)
+        parent = self.find_node_by_index_in_sentence(parent_index_in_sentence)
         assert parent is not None, "Cannot add node to tree; no parent found for it."
 
         parent.children.append(node)
 
-    def find_node_by_sentence_index(self, sentence_index):
+    def find_node_by_index_in_sentence(self, index_in_sentence):
         for node in self.iter_nodes():
-            if node.sentence_index == sentence_index:
+            if node.index_in_sentence == index_in_sentence:
                 return node
         return None
 
@@ -72,29 +76,26 @@ class DependencyTree(object):
         return self.root.iter_nodes()
 
     def __repr__(self):
-        s = "DependencyTree ai:{}, n_nodes:{}".format(self.answer_index, 
-                self.n_nodes())
+        s = "DependencyTree ai:{}, n_nodes:{}".format(self.answer, self.n_nodes())
         return '\n'.join([s, self.root.__repr__('    ')])
 
     def get_ordered_words(self, vocabulary):
-        rev_vocab = dict(((v,k) for k,v in vocabulary.iteritems()))
         words = []
-        for node in sorted(self.iter_nodes(), key=lambda x: x.sentence_index):
-            words.append(rev_vocab[node.word_index])
+        for node in sorted(self.iter_nodes(), key=lambda x: x.index_in_sentence):
+            words.append(node.word)
         return words
 
 
 def trees_from_stanford_parse_tuples(list_of_stanford_parse_tuples, 
-                                answer_indices, vocabulary, dependency_dict):
+                                answers, vocabulary, dependency_dict):
     """Takes a list of lists of tuples that are output from the Stanford
     Parser, and returns a list of DependencyTree. Order is preserved.
 
     list_of_stanford_parse_tuples is a list of lists of tuples following the 
         Stanford Parser output format, so that each element in the outer 
         list contains a sentence representation.
-    answer_indices is a list of integers. Each integer is the index in the 
-        vocabulary to the correct answer to the corresponding sentence in
-        list_of_stanford_parse_tuples
+    answers is a list of strings. Each string is the correct answer to the
+        corresponding sentence in list_of_stanford_parse_tuples
     vocabulary is a dict where word indices can be looked up. The index of
         a word can then be used to find its embedding in the word embedding
         matrix We (used elsewhere in QANTA)
@@ -103,19 +104,21 @@ def trees_from_stanford_parse_tuples(list_of_stanford_parse_tuples,
 
     Returns a list of DependencyTree.
     """
-    return [tree_from_stanford_parse_tuples(s, ai, vocabulary, dependency_dict) for s, ai 
-            in zip(list_of_stanford_parse_tuples, answer_indices)]
+    output = []
+    for sptuple, answer in zip(list_of_stanford_parse_tuples, answers):
+        output.append(tree_from_stanford_parse_tuples(sptuple, answer, 
+                                                vocabulary, dependency_dict))
 
 
-def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer_index, 
+def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer, 
                                     vocabulary, dependency_dict):
     """Takes a list of tuples as output from the Stanford Parser,
     and returns a dependency tree for the sentence.
 
     stanford_parse_tuples is a list of tuples following the Stanford Parser 
         output format
-    answer_index is a single integer, namely the index of the correct answer
-        to the sentence encoded in stanford_parse_tuples, in the vocabulary
+    answer is a single string, namely the correct answer to the sentence 
+        encoded in stanford_parse_tuples
     vocabulary is a dict where word indices can be looked up. The index of
         a word can then be used to find its embedding in the word embedding
         matrix We (used elsewhere in QANTA)
@@ -133,35 +136,35 @@ def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer_index,
     # Store items in queue as (SP index, relation index) pairs
     queue.put((root_index, None, None))
 
-    tree = DependencyTree(answer_index)
+    tree = DependencyTree(answer)
 
     while not queue.empty():
-        sentence_index, dependency_index, parent_sentence_index = queue.get()
+        index_in_sentence, dependency, parent_index_in_sentence = queue.get()
 
         # Word indices and stanford_parse_tuples list indices are not
         # guaranteed to correspond, so find tuple by index by explicitly
         # looking it up
         for tup in stanford_parse_tuples:
-            if tup[0] == sentence_index:
+            if tup[0] == index_in_sentence:
                 # Stop searching for a match
                 break
 
-        word_index = vocabulary[tup[1]]
+        word = tup[1]
 
         # We explicitly pass None as node children, as they will be added
         # in a later iteration.
-        node = DependencyNode(word_index, sentence_index, dependency_index, None)    
-        tree.add(node, parent_sentence_index)
+        node = DependencyNode(word, index_in_sentence, dependency, None)    
+        tree.add(node, parent_index_in_sentence)
 
         children = tup[2]
 
         for child in children:
-            depindex = dependency_dict[child[0]]
+            dependency = child[0]
             children_indices = child[1]
 
-            # There might possibly be more than one child stored under the
+            # There might be more than one child stored under the
             # same relation, so iterate over them
-            for ci in children_indices:
-                queue.put((ci, depindex, sentence_index))
+            for child_index in children_indices:
+                queue.put((child_index, dependency, index_in_sentence))
 
     return tree

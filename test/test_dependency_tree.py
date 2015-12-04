@@ -37,10 +37,9 @@ class TestDependencyTree(unittest.TestCase):
         dep_dict = {'advcl':0,'advmod':1,'amod':2,'appos':3,'case':4,
                     'case':5,'dep':6,'det':7,'dobj':8,'mark':9,
                     'nmod':10,'nummod':11,'xcomp':12}
-        qid = 500
+        answer = 'yo buddy!'
 
-        tree = tree_from_stanford_parse_tuples(sentence, qid, vocabulary, dep_dict)
-
+        tree = tree_from_stanford_parse_tuples(sentence, answer, vocabulary, dep_dict)
 
         result = ' '.join(tree.get_ordered_words(vocabulary))
         expected = ('For ten points identify this English king of Wessex '

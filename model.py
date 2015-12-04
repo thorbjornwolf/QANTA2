@@ -9,24 +9,24 @@ import numpy as np
 class QANTA(object):
     """MV-RNN for DependencyTrees"""
 
-    def __init__(self, dimensionality, word_vocabulary, dependency_list,
+    def __init__(self, dimensionality, vocabulary, dependency_dict,
                  answers, nonlinearity=np.tanh,
                  load_embeddings_from_file=False):
         """dimensionality is a positive integer representing
             how many dimensions should go into word and relation 
             embeddings.
-        word_vocabulary is a dict of words (strings) in the data, pointing 
+        vocabulary is a dict of words (strings) in the data, pointing 
             to index values for each word.
-        dependency_list is a dict of dependencies in the data, pointing to 
+        dependency_dict is a dict of dependencies in the data, pointing to 
             index values for each dependency relation.
-        answers is a list or set of the possible answers in the data
+        answers is a list of the possible answers in the data
         nonlinearity is an elementwise nonlinear method to apply to numpy
             arrays. It is used in the calculation of hidden representations.
             Default is np.tanh.
         """
         self.dimensionality = dimensionality
-        self.word_vocabulary = word_vocabulary
-        self.dependency_list = dependency_list
+        self.vocabulary = vocabulary
+        self.dependency_dict = dependency_dict
         self.answers = answers
         self.nonlinearity = nonlinearity
 
@@ -34,6 +34,12 @@ class QANTA(object):
             raise NotImplementedError()
         else:
             self.generate_embeddings()
+
+    def word2index(self, word):
+        return self.vocabulary[word]
+
+    def dependency2index(self, dependency):
+        return self.dependency_dict[dependency]
 
     def generate_embeddings(self, lo=-1, hi=1):
         """Generates We, Wr, Wb, and b
@@ -43,11 +49,11 @@ class QANTA(object):
         # We: Word embeddings
         # #words x d
         # word embeddings is found by `We[vocab['myword']]`
-        We = np.random.uniform(lo, hi, size=(len(self.word_vocabulary), d))
+        We = np.random.uniform(lo, hi, size=(len(self.vocabulary), d))
 
         # Wr: Relation embedded matrices (original paper called it Wr)
         # #dependencies x d x d
-        Wr = np.random.uniform(lo, hi, size=(len(self.dependency_list), d, d))
+        Wr = np.random.uniform(lo, hi, size=(len(self.dependency_dict), d, d))
 
         self.We = We
         self.Wr = Wr
@@ -80,9 +86,9 @@ class QANTA(object):
         for tree in dependency_trees:
 
             # Sample from all other answers than the present one
-            incorrect_answers = set(self.answers).difference([tree.answer_index])
+            incorrect_answers = [x for x in self.answers if x != tree.answer]
 
-            incorrect_answers = np.random.choice(list(incorrect_answers),
+            incorrect_answers = np.random.choice(incorrect_answers,
                                                  n_incorrect_answers, 
                                                  replace=False)
             
@@ -94,7 +100,7 @@ class QANTA(object):
         se = error / n_nodes
 
         # TODO Update weights!
-        
+
 
     def predict(self, dependency_trees):
         h = self.get_paragraph_representation(dependency_trees)
@@ -129,33 +135,33 @@ class QANTA(object):
         children_sum = np.zeros(self.dimensionality)
         for i, child in enumerate(node.children):
             hc = self.get_node_representation(child)
-            Wc = self.Wr[child.dependency_index]
+            Wc = self.Wr[self.dependency2index(child.dependency)]
             Wrh = np.matmul(Wc, hc)
 
             children_sum += Wrh
 
-        x = self.We[node.word_index]
+        x = self.We[self.word2index(node.word)]
         node_h_arg = np.matmul(self.Wv, x) + children_sum + self.b
         node_h = self.nonlinearity(node_h_arg)
         return node_h
 
     def node_error(self, node, answer, incorrect_answers):
         """node is a DependencyNode (s in paper eq. 5)
-        answer is a vocabulary index (c in paper eq. 5)
-        incorrect_answers is a listlike of vocabulary indices
-            (Z in paper eq. 5)
+        answer is a string (c in paper eq. 5)
+        incorrect_answers is a list of strings (Z in paper eq. 5)
 
         Returns the inner sum over Z in eq. 5
         """
         error_per_incorrect_answer = []
 
         hs = self.get_node_representation(node)
-        xc = self.We[answer]
+        xc = self.We[self.word2index(answer)]
         xc_dot_hs = np.dot(xc, hs)
 
         for z in incorrect_answers:
             # Calculate max_term: max(0, 1 - x_c*h_s + x_z*h_s)
-            xz = self.We[z]
+
+            xz = self.We[self.word2index(z)]
             max_term = 1 - xc_dot_hs + np.dot(xz, hs)
             if max_term <= 0:
                 # No need to do the ranking calculation
@@ -178,14 +184,14 @@ class QANTA(object):
 
         xc is the word embedding for the correct answer
         hs is the hidden state of the node being evaluated
-        Z is the list of indices of wrong answers
+        Z is the list of strings of wrong answers
         xc_dot_hs is an optional precomputation of xc dot hs
         """
         # Randomly permutate the incorrect answers
         permutation = np.random.permutation(Z)
         # Create a generator object for iterating over the incorrect
         # answers' embeddings
-        incorrect_embeddings = (self.We[i] for i in permutation)
+        incorrect_embeddings = (self.We[self.word2index(w)] for w in permutation)
 
         if xc_dot_hs is None:
             xc_dot_hs = np.dot(xc, hs)
@@ -208,14 +214,15 @@ class QANTA(object):
         In the QANTA paper, this _is_ equation 5
 
         sentence_tree is a DependencyTree
-        incorrect_answers is a listlike of indices from the vocabulary
+        incorrect_answers is a list of string that are not the answer to
+            the sentence in sentence_tree
         """
 
         # TODO: Reuse node hidden vector calculations
 
         node_error = []
         for node in sentence_tree.iter_nodes():
-            node_error.append(self.node_error(node, sentence_tree.answer_index,
-                              incorrect_answers))
+            e = self.node_error(node, sentence_tree.answer, incorrect_answers)
+            node_error.append(e)
 
         return sum(node_error)
