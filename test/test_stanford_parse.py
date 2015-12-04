@@ -37,7 +37,9 @@ class TestParseResult(unittest.TestCase):
              (6, u'is', []), (7, u'this', [(u'cop', [6]), (u'nsubj', [5])])]
         ]
 
-        inputs = ["After you've installed the Stanford Parser in your home directory, just use this python recipe to get the flat bracketed parse",
+        inputs = [("After you've installed the Stanford Parser in your home "
+                   "directory, just use this python recipe to get the flat "
+                   "bracketed parse"),
               "Could your computerphobic cousin tell what is going on in the code?",
               "this is that and that is this"]
 

@@ -32,13 +32,15 @@ class TestParseResult(unittest.TestCase):
         inps = ["col0,col1,col2,col3,col4\na,b,c,d,e,f", 
                "col0,col1,col2,col3,col4\na,b",
                'col0,col1,col2,col3,col4\na,b,c,d,"e ||| f"',
-               'col0,col1,col2,col3,col4\na,b,c,d,"e ||| f ||| q ||| w ||| e ||| r ||| t ||| y ||| u ||| i ||| o"',]
+               ('col0,col1,col2,col3,col4\na,b,c,d,'
+               '"e ||| f ||| q ||| w ||| e ||| r ||| t ||| '
+               'y ||| u ||| i ||| o ||| d ||| e ||| q"'),]
 
         for inp in inps:
             with open(tmpfile, 'w') as f:
                 f.write(inp)
             
-            self.assertRaises(AssertionError, parse_question_csv, tmpfile)
+        self.assertRaises(AssertionError, parse_question_csv, tmpfile)
 
         os.remove(tmpfile)
         
