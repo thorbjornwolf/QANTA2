@@ -45,10 +45,18 @@ class DependencyTree(object):
         self.question_id = question_id
 
     def add(self, node, parent_sentence_index=None):
+        """Inserts a node into the tree structure. 
+        Nodes are inserted breadt first, to accomodate the style of the
+            Stanford Parser output.
+        If parent_sentence_index is None, it is assumed that the node is
+            the root node.
+        """
         if parent_sentence_index is None:
             self.root = node
             return
         parent = self.find_node_by_sentence_index(parent_sentence_index)
+        assert parent is not None, "Cannot add node to tree; no parent found for it."
+
         parent.children.append(node)
 
     def find_node_by_sentence_index(self, sentence_index):
@@ -76,17 +84,45 @@ class DependencyTree(object):
         return words
 
 
-def trees_from_stanford_parse_tuples(list_of_stanford_parse_tuples, answer_indices, vocabulary, dependency_dict):
+def trees_from_stanford_parse_tuples(list_of_stanford_parse_tuples, 
+                                answer_indices, vocabulary, dependency_dict):
     """Takes a list of lists of tuples that are output from the Stanford
     Parser, and returns a list of DependencyTree. Order is preserved.
+
+    list_of_stanford_parse_tuples is a list of lists of tuples following the 
+        Stanford Parser output format, so that each element in the outer 
+        list contains a sentence representation.
+    answer_indices is a list of integers. Each integer is the index in the 
+        vocabulary to the correct answer to the corresponding sentence in
+        list_of_stanford_parse_tuples
+    vocabulary is a dict where word indices can be looked up. The index of
+        a word can then be used to find its embedding in the word embedding
+        matrix We (used elsewhere in QANTA)
+    dependency_dict is like vocabulary, but for the set of words representing
+        the different kinds of relations found in the data.
+
+    Returns a list of DependencyTree.
     """
     return [tree_from_stanford_parse_tuples(s, ai, vocabulary, dependency_dict) for s, ai 
             in zip(list_of_stanford_parse_tuples, answer_indices)]
 
 
-def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer_index, vocabulary, dependency_dict):
+def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer_index, 
+                                    vocabulary, dependency_dict):
     """Takes a list of tuples as output from the Stanford Parser,
     and returns a dependency tree for the sentence.
+
+    stanford_parse_tuples is a list of tuples following the Stanford Parser 
+        output format
+    answer_index is a single integer, namely the index of the correct answer
+        to the sentence encoded in stanford_parse_tuples, in the vocabulary
+    vocabulary is a dict where word indices can be looked up. The index of
+        a word can then be used to find its embedding in the word embedding
+        matrix We (used elsewhere in QANTA)
+    dependency_dict is like vocabulary, but for the set of words representing
+        the different kinds of relations found in the data.
+
+    Returns a single DependencyTree.
     """
 
     assert stanford_parse_tuples[0][2][0][0] == 'root', "No root in tree, cannot compute!"
