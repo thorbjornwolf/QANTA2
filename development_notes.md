@@ -5,6 +5,8 @@
 ## Preprocessing
 - [x] Parse CSV (using built-in csv module)
 - [x] Ensure division in train, test sets is kept
+- [ ] Follow the paper's preprocessing by replacing all occurrences of answers in the question text with single entities (e.g., Ernest Hemingway becomes Ernest_Hemingway).
+- [ ] Train word embeddings on the preprocessed question text from the training data.
 - [x] Apply Stanford Parser to question sentences, get dependency tree as text
     + [ ] Check whether it drops sentences when it is out of memory
     + [ ] Check whether it splits sentence strings that are, in fact, two or more sentences. This happens in the question in line 136 in the 20k dataset.
@@ -14,12 +16,12 @@
     + Consider whether answers should have spaces replaced with underscores, or whether we just keep them as a string with spaces.
 - [x] Build a dependency list (in fact an ordered set or vocabulary; only unique entries) that allows mapping a dependency string to an integer (later to be used for fetching the dependency matrix)
     + Same remarks as for the word vocabulary
-- [ ] Convert Stanford Parser dependency tree text to actual tree data structure
-    + [ ] Create and use a class `DependencyNode`:
+- [x] Convert Stanford Parser dependency tree text to actual tree data structure
+    + [x] Create and use a class `DependencyNode`:
         * has `DependencyNode.word_index` (the word's index in the vocabulary) 
         * has `DependencyNode.dependency_index` (the index in the dependency list of the dependency between this node and its parent)
         * has `DependencyNode.children` (list of nodes)
-    + [ ] Create and use a class `DependencyTree`:
+    + [x] Create and use a class `DependencyTree`:
         * has `DependencyTree.root` (the top node)
         * has `DependencyTree.answer_index` (the answer string's index in the vocabulary)
         * has `DependencyTree.question_id`, a uniquely identifying question id (expected to be given by the input CSV)
@@ -35,7 +37,7 @@
 - [x] Initialize word and dependency embeddings, and the additional matrix and bias
 - [ ] Look into what is considered best practice for initialization of vectors and matrices
 - [ ] Consider initializing as many words as possible with precomputed vectors, such as those from word2vec
-- [ ] Remove stopwords c.f. the original qanta code.
+- [ ] Remove stopwords as in the original qanta code.
 - [x] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
 - [ ] Figure out why the original QANTA implementation does not use the `rank` calculation (eq 5)
 - [ ] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
