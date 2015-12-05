@@ -1,17 +1,14 @@
 """This module contains the QANTA MV-RNN model
 """
 
-from __future__ import print_function
-
 import numpy as np
-
 
 class QANTA(object):
     """MV-RNN for DependencyTrees"""
 
     def __init__(self, dimensionality, vocabulary, dependency_dict,
-                 answers, nonlinearity=np.tanh,
-                 load_embeddings_from_file=False):
+                 answers, nonlinearity=None,
+                 embeddings_file=None):
         """dimensionality is a positive integer representing
             how many dimensions should go into word and relation 
             embeddings.
@@ -22,24 +19,33 @@ class QANTA(object):
         answers is a list of the possible answers in the data
         nonlinearity is an elementwise nonlinear method to apply to numpy
             arrays. It is used in the calculation of hidden representations.
-            Default is np.tanh.
+            Default is normalized np.tanh.
+        embeddings_file is the path to a binary file in the word2vec format. 
+            If defined, the model's vectors are initialized from that file.
         """
         self.dimensionality = dimensionality
         self.vocabulary = vocabulary
         self.dependency_dict = dependency_dict
         self.answers = answers
+
+        if nonlinearity is None:
+            nonlinearity = self.ntanh
         self.nonlinearity = nonlinearity
 
-        if load_embeddings_from_file:
-            raise NotImplementedError()
-        else:
-            self.generate_embeddings()
+        self.generate_embeddings()
+        if embeddings_file:
+            self.load_embeddings_word2vec(embeddings_file)
 
     def word2index(self, word):
         return self.vocabulary[word]
 
     def dependency2index(self, dependency):
         return self.dependency_dict[dependency]
+
+    def ntanh(x):
+        """Normalized tanh"""
+        tanh = np.tanh(x)
+        return tanh / np.linalg.norm(tanh)
 
     def generate_embeddings(self, lo=-1, hi=1):
         """Generates We, Wr, Wb, and b
@@ -66,6 +72,17 @@ class QANTA(object):
         self.Wv = Wv
         self.b = b
 
+    def load_embeddings_word2vec(self, path):
+        """Loads vectors from a binary file complying with the 
+        word2vec format.
+        """
+        from gensim.models import Word2Vec
+            # C binary format
+            model = Word2Vec.load_word2vec_format(embeddings_file, binary=True)
+            for word, index in vocabulary.iteritems():
+                if word in model:
+                    self.We[index] = model[word]
+
     def train(self, dependency_trees, n_incorrect_answers=100):
         """Trains the QANTA model on the sentence trees.
 
@@ -75,10 +92,10 @@ class QANTA(object):
         """
 
         if len(self.answers) - 1 < n_incorrect_answers:
-            print(("Cannot sample without replacement from {} answers, as "
+            print ("Cannot sample without replacement from {} answers, as "
                    "only {} answers are available. Setting "
                    "n_incorrect_answers down to {}.").format(
-                   n_incorrect_answers, len(self.answers), len(self.answers) - 1))
+                   n_incorrect_answers, len(self.answers), len(self.answers) - 1)
             
             n_incorrect_answers = len(self.answers) - 1
 
