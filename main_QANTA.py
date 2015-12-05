@@ -27,7 +27,7 @@ def Something(input_folder):
 	with open(tree_list_path, 'rb') as tree_list_file:
 		tree_list = cPickle.load(tree_list_file)
 
-	#print type(vocabulary["Virginia"]) #output: int
+	print tree_list[23]
 
 	qanta = QANTA(dimension, vocabulary, dependency, answers)
 
