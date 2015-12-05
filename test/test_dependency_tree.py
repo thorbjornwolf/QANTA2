@@ -3,6 +3,7 @@
 import unittest
 
 from dependency_tree import tree_from_stanford_parse_tuples
+from dependency_tree import DependencyNode, DependencyTree
 
 class TestDependencyTree(unittest.TestCase):
 
@@ -46,3 +47,19 @@ class TestDependencyTree(unittest.TestCase):
                     'the only English king to earn the epithet the Great')
         self.assertEquals(result, expected)
 
+    def test_iter_nodes_by_layer(self):
+        E = DependencyNode('E', 5, 'CE')
+        D = DependencyNode('D', 4, 'CD')
+        C = DependencyNode('C', 3, 'BC', [D,E])
+        A = DependencyNode('A', 1, 'BA')
+        B = DependencyNode('B', 2, 'CB', [A,C])
+
+        tree = DependencyTree('answer')
+        tree.root = B
+        res = tree.iter_nodes_by_layer()
+
+        self.assertTrue(res.index(B) == 0)
+        self.assertTrue(0 < res.index(A) < 3)
+        self.assertTrue(0 < res.index(C) < 3)
+        self.assertTrue(2 < res.index(D) < 5)
+        self.assertTrue(2 < res.index(E) < 5)

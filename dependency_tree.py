@@ -1,3 +1,4 @@
+from itertools import chain
 from Queue import Queue
 
 
@@ -74,6 +75,21 @@ class DependencyTree(object):
 
     def iter_nodes(self):
         return self.root.iter_nodes()
+
+    def iter_nodes_by_layer(self):
+        """Returns a list where it is guaranteed that the first
+        item is the root node, the next consecutive items are its
+        immediate children, the items after those are the layer below 
+        that, et cetera. The last elements are the bottom-most leaf 
+        nodes of the tree.
+        """
+        ordered = []
+        layer = [self.root]
+        while layer:
+            children = list(chain(*[x.children for x in layer]))
+            ordered.extend(layer)
+            layer = children
+        return ordered
 
     def __repr__(self):
         s = "DependencyTree ai:{}, n_nodes:{}".format(self.answer, self.n_nodes())
