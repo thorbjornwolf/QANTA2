@@ -7,7 +7,7 @@ class QANTA(object):
     """MV-RNN for DependencyTrees"""
 
     def __init__(self, dimensionality, vocabulary, dependency_dict,
-                 answers, nonlinearity=None,
+                 answers, nonlinearity=np.tanh,
                  embeddings_file=None):
         """dimensionality is a positive integer representing
             how many dimensions should go into word and relation 
@@ -28,8 +28,8 @@ class QANTA(object):
         self.dependency_dict = dependency_dict
         self.answers = answers
 
-        if nonlinearity is None:
-            nonlinearity = self.ntanh
+        # if nonlinearity is None:
+        #     nonlinearity = self.ntanh
         self.nonlinearity = nonlinearity
 
         self.generate_embeddings()
@@ -42,10 +42,10 @@ class QANTA(object):
     def dependency2index(self, dependency):
         return self.dependency_dict[dependency]
 
-    def ntanh(x):
-        """Normalized tanh"""
-        tanh = np.tanh(x)
-        return tanh / np.linalg.norm(tanh)
+    # def ntanh(self, x):
+    #     """Normalized tanh"""
+    #     tanh = np.tanh(x)
+    #     return tanh / np.linalg.norm(tanh)
 
     def generate_embeddings(self, lo=-1, hi=1):
         """Generates We, Wr, Wb, and b
@@ -77,11 +77,11 @@ class QANTA(object):
         word2vec format.
         """
         from gensim.models import Word2Vec
-            # C binary format
-            model = Word2Vec.load_word2vec_format(embeddings_file, binary=True)
-            for word, index in vocabulary.iteritems():
-                if word in model:
-                    self.We[index] = model[word]
+        # C binary format
+        model = Word2Vec.load_word2vec_format(embeddings_file, binary=True)
+        for word, index in vocabulary.iteritems():
+            if word in model:
+                self.We[index] = model[word]
 
     def train(self, dependency_trees, n_incorrect_answers=100):
         """Trains the QANTA model on the sentence trees.
