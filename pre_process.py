@@ -129,7 +129,7 @@ def dependency_parse(sentences_path, target_path=None):
 
 def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
     """Takes a file as input, unpickles it and add every entity 
-    of it to the vocabulary. Returns vocabulary."""
+    of it to the vocabulary. Pickles vocabulary."""
 
     with open(filen, 'rb') as f:
         input = cPickle.load(f)
@@ -168,6 +168,8 @@ def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
 
 def create_tree(sentences_path, sentence_ID_path, question_info_path,
                 vocabulary_path, dependency_path, stanford_parsed_path, tree_list_path):
+    """Opens up all the data and passes it to dependency_tree to create all trees"""
+
     tree_list = []
 
     with open(sentences_path, 'rb') as f:
@@ -190,8 +192,7 @@ def create_tree(sentences_path, sentence_ID_path, question_info_path,
 
     for k in range(len(sentences)):
         answer = question_info[sentences_ID[k]][2]
-        answer_index = vocabulary[answer]
-        tree = tree_from_stanford_parse_tuples(stanford_parsed[k], answer_index,
+        tree = tree_from_stanford_parse_tuples(stanford_parsed[k], answer,
                                                vocabulary, dependency)
         tree_list.append(tree)
 
@@ -200,7 +201,9 @@ def create_tree(sentences_path, sentence_ID_path, question_info_path,
 
 
 def process(csv_file, output_file, set_choice, process_dir, start_from):
-
+	"""Starts from whatever index that is specified in start_from. 
+	Basically takes the csv file and outputs all the data structure needed
+	for the model"""
 	# CSV imported
     parsed_csv_path = os.path.join(process_dir, "parsed_csv")
     # all the sentence_IDs in a list
@@ -211,9 +214,13 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
     answers_path = os.path.join(process_dir, "answers") 
     # dictionary with all info
     question_info_path = os.path.join(process_dir, "question_info")
+    # All the stanford parsed sentences
     stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
+    # dictionary with all the words
     vocabulary_path = os.path.join(process_dir, "vocabulary")
+    # dictionary with all the dependencies
     dependency_path = os.path.join(process_dir, "dependency_vocabulary")
+    # list of all the tree
     tree_list_path = os.path.join(process_dir, "tree_list")
 
     if start_from <= 1:
@@ -243,7 +250,7 @@ def main():
     raw_args.add_argument('-o', '--output', dest='output_file',
                           help='location of output file', type=str)
     raw_args.add_argument('--set-choice', dest='set_choice',
-                          help='what type of set to preprocess', type=str, default="train")
+                          help='what type of set (train, test, dev) to preprocess', type=str, default="train")
     raw_args.add_argument('-d', '--directory', dest='process_dir',
                           help='Location of directory in which we store stepwise results',
                           default=None, type=str)
