@@ -65,10 +65,10 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 
 	for questions in csv_questions:
 		if questions[1] == set_choice:
-			question_information[questions[0]] = [questions[1], questions[2], questions[3]]
 			#temp = questions[3].split()
 			temp_string = questions[3]
 			questions[3] = questions[3].replace(" ", "_")
+			question_information[questions[0]] = [questions[1], questions[2], questions[3]]
 			
 			if questions[3] not in answers:
 				answers.append(questions[3])
@@ -81,14 +81,9 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 					sentence = sentence.replace(temp_answers[k], answers[k])
 				sentences.append(sentence)
 				sentence_ID.append(questions[0])
-						
+
 				#sentences.append(sentence)
 				#sentence_ID.append(questions[0])
-
-	for k in range(len(temp_answers)):
-		for i in range(len(sentences)):
-			if temp_answers[k] in sentences[i]:
-				print "Hej"
 
 	with open(sentence_ID_path, 'wb') as f:
 		cPickle.dump(sentence_ID, f)
@@ -128,34 +123,47 @@ def dependency_parse(sentences_path, target_path=None):
 			dep1, dep2 being index_in_sentence for the dependent words
 	"""
 
-	with open(sentences_path, 'rb') as sentencesfile:
-		sentences = cPickle.load(sentencesfile)
-
-	config = get_config('Stanford Parser')
-	# E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser.jar
-	os.environ['STANFORD_PARSER'] = config['STANFORD_PARSER']
-	# E.g.
-	# /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser-3.5.2-models.jar
-	os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
-
-	parser = stanford.StanfordDependencyParser()
-	# We can set java options through java_options. They default to '-mx1000m'
-
-	parsed = parser.raw_parse_sents(sentences)
-
-	output = []
-	for sentence in parsed:
-		depgraph = list(sentence)
-		assert len(depgraph) == 1
-		depgraph = depgraph[0]
-
-		root_address = depgraph.root['address']
-		nodes = map(node_converter, depgraph.nodes.items())
-
-		output.append(nodes)
-
 	with open(target_path, 'wb') as f:
-		cPickle.dump(output, f)
+		cPickle.dump("", f)
+
+	with open(sentences_path, 'rb') as sentencesfile:
+		sentences1 = cPickle.load(sentencesfile)
+
+	for k in range(len(sentences1)/100):
+		if (k+1)*100 - len(sentences1) < 100:
+			sentences = sentences1[k*100:len(sentences1)]
+		else:
+			sentences = sentences1[k*100:(k+1)*100]
+	
+		#print sentences
+		#break
+
+
+		config = get_config('Stanford Parser')
+		# E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser.jar
+		os.environ['STANFORD_PARSER'] = config['STANFORD_PARSER']
+		# E.g.
+		# /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser-3.5.2-models.jar
+		os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
+
+		parser = stanford.StanfordDependencyParser()
+		# We can set java options through java_options. They default to '-mx1000m'
+
+		parsed = parser.raw_parse_sents(sentences)
+
+		output = []
+		for sentence in parsed:
+			depgraph = list(sentence)
+			assert len(depgraph) == 1
+			depgraph = depgraph[0]
+
+			root_address = depgraph.root['address']
+			nodes = map(node_converter, depgraph.nodes.items())
+
+			output.append(nodes)
+
+		with open(target_path, 'ab') as f:
+			cPickle.dump(output, f)
 
 
 def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
@@ -225,6 +233,7 @@ def create_tree(sentences_path, sentence_ID_path, question_info_path,
 		answer = question_info[sentences_ID[k]][2]
 		tree = tree_from_stanford_parse_tuples(stanford_parsed[k], answer,
 											   vocabulary, dependency)
+		
 		tree_list.append(tree)
 
 	with open(tree_list_path, 'wb') as f:
@@ -277,7 +286,7 @@ def main():
 		description='QANTA preprocessing: Going from CSV question files to QANTA format')
 	raw_args.add_argument('-s', '--source', dest='source_file',
 						  help='location of source CSV file',
-						  type=str, default="./his-questions-small.csv")
+						  type=str, default="./his-questions.csv")
 	raw_args.add_argument('-o', '--output', dest='output_file',
 						  help='location of output file', type=str)
 	raw_args.add_argument('--set-choice', dest='set_choice',
