@@ -45,7 +45,7 @@ class TestInitialization(unittest.TestCase):
         d = 5
         answers = None
 
-        q = model.QANTA(d, vocab, deplist, answers)
+        q = model.QANTA(d, vocab, deplist)
 
         self.assertEquals(q.We.shape, (3, 5))
         self.assertEquals(q.Wr.shape, (2, 5, 5))
@@ -58,7 +58,7 @@ class TestInitialization(unittest.TestCase):
     #     d = 3
     #     answers = None
 
-    #     q = model.QANTA(d, vocab, deplist, answers)
+    #     q = model.QANTA(d, vocab, deplist)
     #     q.We = np.array([[1,2,3], [-1,0,1]])
     #     q.Wr = np.array([[
     #         [1,2,3],
@@ -105,5 +105,102 @@ class TestTrain(unittest.TestCase):
         tree2 = DependencyTree('not 42')
         tree2.add(root2)
 
-        q = model.QANTA(d, vocab, deplist, answers)
+        q = model.QANTA(d, vocab, deplist)
         q.train([tree, tree2])
+
+
+def extract_vocab_and_deps(trees):
+    vocab = dict()
+    deps = dict()
+
+    def to_voc(word):
+        if not word in vocab:
+            vocab[word] = len(vocab)
+
+    def to_dep(dep):
+        if not dep in deps:
+            deps[dep] = len(deps)
+
+    for tree in trees:
+        to_voc(tree.answer)
+        for n in tree.iter_nodes():
+            to_voc(n.word)
+            to_dep(n.dependency)
+
+    return vocab, deps
+
+
+class TestPredict(unittest.TestCase):
+    def __init__(self, arg):
+        super(TestPredict, self).__init__(arg)
+        # tree1 = DependencyTree('okay')
+
+        # tree1.add(DependencyNode('model',2, 'mainword'), None)
+        # tree1.add(DependencyNode('This', 1, 'preword'), 2)
+        # tree1.add(DependencyNode('is', 3, 'verb'), 2)
+        # tree1.add(DependencyNode('good', 4, 'adj'), 3)
+        
+
+        # tree2 = DependencyTree('bad')
+
+        # tree2.add(DependencyNode('blerk',2, 'mainword'), None)
+        # tree2.add(DependencyNode('Erka', 1, 'preword'), 2)
+        # tree2.add(DependencyNode('is', 3, 'verb'), 2)
+        # tree2.add(DependencyNode('silly', 4, 'adj'), 3)
+
+        self.trees = []
+        tree = DependencyTree('Margaret')
+
+        tree.add(DependencyNode('is',2, 'b'), None)
+        tree.add(DependencyNode('She', 1, 'a'), 2)
+        tree.add(DependencyNode('Denmark\'s', 3, 'c'), 2)
+        tree.add(DependencyNode('queen', 4, 'd'), 3)
+        self.trees.append(tree)
+
+        tree = DependencyTree('BMW')
+
+        tree.add(DependencyNode('car', 3, 'b'), None)
+        tree.add(DependencyNode('famous',2, 'c'), 3)
+        tree.add(DependencyNode('brand', 4, 'd'), 3)
+        tree.add(DependencyNode('A', 1, 'a'), 2)
+        self.trees.append(tree)
+
+        tree = DependencyTree('Horse')
+
+        tree.add(DependencyNode('large',2, 'c'), None)
+        tree.add(DependencyNode('A', 1, 'd'), 2)
+        tree.add(DependencyNode('scary', 3, 'b'), 2)
+        tree.add(DependencyNode('animal', 4, 'a'), 3)
+        self.trees.append(tree)        
+
+    def test_predict_2_classes(self):
+        tree1,tree2 = self.trees[0:2]
+        vocab, deplist = extract_vocab_and_deps([tree1,tree2])
+
+        d = 2
+        q = model.QANTA(d, vocab, deplist)
+
+        runs = 100
+        correct = 0
+        for _ in range(runs):
+            q.train([tree1, tree2], n_epochs=30)
+            correct += (q.predict(tree1) == tree1.answer)
+        acc = correct / float(runs)
+        self.assertTrue(acc > 0.9)
+
+    def test_predict_3_classes(self):
+        trees = self.trees
+        vocab, deplist = extract_vocab_and_deps(trees)
+
+        d = 3
+        q = model.QANTA(d, vocab, deplist)
+
+        runs = 50
+        correct = 0
+        for _ in range(runs):
+            q.train(trees, n_epochs=100)
+            correct += (q.predict(trees[0]) == trees[0].answer)
+            # if _ > 0 and _ % 10 == 0:
+            #     print correct / float(_)
+        acc = correct / float(runs)
+        self.assertTrue(acc > 0.8)

@@ -9,9 +9,8 @@ class QANTA(object):
     """MV-RNN for DependencyTrees"""
 
     def __init__(self, dimensionality, vocabulary, dependency_dict,
-                 answers, learning_rate=0.05, nonlinearity=np.tanh, 
-                 d_nonlinearity=dtanh,
-                 embeddings_file=None):
+                 learning_rate=0.05, nonlinearity=np.tanh, 
+                 d_nonlinearity=dtanh, embeddings_file=None):
         """dimensionality is a positive integer representing
             how many dimensions should go into word and relation 
             embeddings.
@@ -19,7 +18,6 @@ class QANTA(object):
             to index values for each word.
         dependency_dict is a dict of dependencies in the data, pointing to 
             index values for each dependency relation.
-        answers is a list of the possible answers in the data
         nonlinearity is an elementwise nonlinear method to apply to numpy
             arrays. It is used in the calculation of hidden representations.
             Default is normalized np.tanh.
@@ -30,8 +28,8 @@ class QANTA(object):
         self.dimensionality = dimensionality
         self.vocabulary = vocabulary
         self.dependency_dict = dependency_dict
-        self.answers = answers
         self.learning_rate = learning_rate
+        self.answers = []
 
         self.nonlinearity = nonlinearity
         self.d_nonlinearity = d_nonlinearity
@@ -84,30 +82,50 @@ class QANTA(object):
             if word in model:
                 self.We[index] = model[word]
 
-    def train(self, trees, n_incorrect_answers=100):
+    def train(self, trees, n_incorrect_answers=100, n_epochs=30):
         """Trains the QANTA model on the sentence trees.
 
         trees is a list of DependencyTree
-
         n_incorrect_answers is |Z| in the paper's eq. 5. It determines
             how many incorrect answers are sampled from the training data
             to be used in calculating sentence error.
+        n_epochs is the number of times the model trains on the input data
         """
-        answers = [t.answer for t in trees]
-        # Enforce answer uniqueness
-        answers = list(set(answers))
+        # Grab new answers, and enforce uniqueness
+        for t in trees:
+            if not t.answer in self.answers:
+                self.answers.append(t.answer)
+
+        answers = self.answers # A tiny bit shorter
+        
         # Make sure we can sample n_incorrect_answers different answers.
         if len(answers) - 1 < n_incorrect_answers:
-            print ("Cannot sample without replacement from {} answers, as "
-                   "only {} answers are available. Setting "
-                   "n_incorrect_answers down to {}.").format(
-                   n_incorrect_answers, len(answers), len(answers) - 1)
+        #     print ("Cannot sample without replacement from {} answers, as "
+        #            "only {} answers are available. Setting "
+        #            "n_incorrect_answers down to {}.").format(
+        #            n_incorrect_answers, len(answers), len(answers) - 1)
             
             n_incorrect_answers = len(answers) - 1
 
+        for epoch in xrange(n_epochs):
+            self._train_epoch(trees, n_incorrect_answers, shuffle=True)
+
+    def _train_epoch(self, trees, n_incorrect_answers, shuffle=True):
+        """Performs a single training run over the given trees.
+        
+        trees is a list of DependencyTree
+        n_incorrect_answers is the number of answers used as 
+            negative samples
+        shuffle indicates whether or not to shuffle the tree list
+
+        Returns epoch error in accordance with eq. 6
+        """
+        if shuffle:
+            np.random.shuffle(trees)
+
         for tree in trees:
             # Sample from all other answers than the present one
-            incorrect_answers = [x for x in answers if x != tree.answer]
+            incorrect_answers = [x for x in self.answers if x != tree.answer]
             # randomize their order
             incorrect_answers = np.random.choice(incorrect_answers,
                                                  n_incorrect_answers, 
@@ -145,6 +163,8 @@ class QANTA(object):
         self.b -=  delta_b
         self.We -= delta_We
         self.Wr -= delta_Wr
+
+        return se
 
     def forward_propagate(self, tree, wrong_answers):
         """Calculates tree-wide error and node-wise answer_delta, as well
@@ -236,6 +256,25 @@ class QANTA(object):
 
         return delta_Wv, delta_b, delta_We, delta_Wr
 
+    def predict(self, tree):
+        """Predicts the answer to a question stated in tree.
+
+        tree is a DependencyTree
+
+        Returns one of the strings in self.answers.
+        """
+        self.set_hidden_representations(tree)
+        pred_vector = np.sum([n.hidden_norm for n in tree.iter_nodes()], axis=0)
+        ptmp = pred_vector
+        pred_vector = normalize(pred_vector)
+
+        ans_idx = map(self.word2index, self.answers)
+        candidates = self.We[ans_idx]
+        best_match_idx = np.argmax(candidates.dot(pred_vector))
+        return self.answers[best_match_idx]
+
+    def predict_many(self, trees):
+        return [self.predict(t) for t in trees]
 
     def set_hidden_representations(self, tree):
         """For each node in the tree, calculates the hidden representation
