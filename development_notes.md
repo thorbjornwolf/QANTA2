@@ -40,12 +40,14 @@
 - [ ] Remove stopwords as in the original qanta code.
 - [x] Implement a method (e.g. `QANTAModel.calculate_embedding`) that can calculate a DependencyTree's embedded representation (following eq. 4)
 - [ ] Figure out why the original QANTA implementation does not use the `rank` calculation (eq 5)
-- [ ] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
+- [x] Build an overall method `QANTAModel.train` that, given a list of `DependencyTree`s (and possibly a list of wrong answers?) will train the model.
     + [x] Implemented a method `QANTA.sentence_error` that calculates eq. 5, given
         * a sentence tree
         * a list of incorrect answers
     + [x] Calculate objective function (eq. 6) (model.py:94)
-    + [ ] Do backpropagation through structure / AdaGrad (eq. 7 and supplementary reading)
+    + [x] Do backpropagation through structure / AdaGrad (eq. 7 and supplementary reading)
+- [ ] Use batches in training
+- [ ] Consider whether the tree error is ever used in backpropagation, and why it is not if it isn't
 - [ ] Build an overall method `QANTAModel.predict` that, given a tree returns the most likely answer (from the set of possible answers)
 - [ ] Actually train a model on the training set
 	
