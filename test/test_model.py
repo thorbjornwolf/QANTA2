@@ -133,21 +133,6 @@ def extract_vocab_and_deps(trees):
 class TestPredict(unittest.TestCase):
     def __init__(self, arg):
         super(TestPredict, self).__init__(arg)
-        # tree1 = DependencyTree('okay')
-
-        # tree1.add(DependencyNode('model',2, 'mainword'), None)
-        # tree1.add(DependencyNode('This', 1, 'preword'), 2)
-        # tree1.add(DependencyNode('is', 3, 'verb'), 2)
-        # tree1.add(DependencyNode('good', 4, 'adj'), 3)
-        
-
-        # tree2 = DependencyTree('bad')
-
-        # tree2.add(DependencyNode('blerk',2, 'mainword'), None)
-        # tree2.add(DependencyNode('Erka', 1, 'preword'), 2)
-        # tree2.add(DependencyNode('is', 3, 'verb'), 2)
-        # tree2.add(DependencyNode('silly', 4, 'adj'), 3)
-
         self.trees = []
         tree = DependencyTree('Margaret')
 
@@ -171,36 +156,30 @@ class TestPredict(unittest.TestCase):
         tree.add(DependencyNode('A', 1, 'd'), 2)
         tree.add(DependencyNode('scary', 3, 'b'), 2)
         tree.add(DependencyNode('animal', 4, 'a'), 3)
-        self.trees.append(tree)        
+        self.trees.append(tree)
 
     def test_predict_2_classes(self):
-        tree1,tree2 = self.trees[0:2]
-        vocab, deplist = extract_vocab_and_deps([tree1,tree2])
-
-        d = 2
-        q = model.QANTA(d, vocab, deplist)
-
-        runs = 100
-        correct = 0
-        for _ in range(runs):
-            q.train([tree1, tree2], n_epochs=30)
-            correct += (q.predict(tree1) == tree1.answer)
-        acc = correct / float(runs)
-        self.assertTrue(acc > 0.9)
+        self.generic_test(d=2, n_trees=2, 
+                          runs=50, n_epochs=100, 
+                          min_acc=0.9)
 
     def test_predict_3_classes(self):
-        trees = self.trees
-        vocab, deplist = extract_vocab_and_deps(trees)
+        self.generic_test(d=2, n_trees=3, 
+                          runs=50, n_epochs=100, 
+                          min_acc=0.85)
 
-        d = 3
+    def generic_test(self, d, n_trees, runs, n_epochs, min_acc):
+        trees = self.trees[:n_trees]
+        vocab, deplist = extract_vocab_and_deps(trees)
         q = model.QANTA(d, vocab, deplist)
 
-        runs = 50
         correct = 0
         for _ in range(runs):
-            q.train(trees, n_epochs=100)
-            correct += (q.predict(trees[0]) == trees[0].answer)
-            # if _ > 0 and _ % 10 == 0:
-            #     print correct / float(_)
-        acc = correct / float(runs)
-        self.assertTrue(acc > 0.8)
+            q.train(trees, n_epochs=n_epochs)
+            # Predict all answers
+            for t in trees:
+                correct += (q.predict(t) == t.answer)
+            # if _ > 0 and _ % 5 == 0:
+            #     print correct / float(runs * len(trees))
+        acc = correct / float(runs * len(trees))
+        self.assertTrue(acc > min_acc)
