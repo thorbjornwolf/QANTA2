@@ -4,18 +4,24 @@ from Queue import Queue
 
 class DependencyNode(object):
 
-    def __init__(self, word, index_in_sentence, dependency, children=None):
+    def __init__(self, word, index_in_sentence, dependency, 
+                 children=None, parent=None):
         """
         word is the word that the node represents
         index_in_sentence is the index of the word in the source sentence.
             Note that this starts at 1, not 0
         dependency is a string representing the parent's dependency relation
             to this node
+        children is a list of nodes that are direct descendants of this node
+            in the tree. For leaf nodes, this list is empty.
+        parent is the node that this node is a child of. For the root node,
+            this is None.
         """
         self.word = word
         self.index_in_sentence = index_in_sentence
         self.dependency = dependency
         self.children = children or []
+        self.parent = parent
 
     def n_nodes(self):
         s = sum([n.n_nodes() for n in self.children])
@@ -61,7 +67,7 @@ class DependencyTree(object):
             return
         parent = self.find_node_by_index_in_sentence(parent_index_in_sentence)
         assert parent is not None, "Cannot add node to tree; no parent found for it."
-
+        node.parent = parent
         parent.children.append(node)
 
     def find_node_by_index_in_sentence(self, index_in_sentence):
@@ -76,7 +82,7 @@ class DependencyTree(object):
     def iter_nodes(self):
         return self.root.iter_nodes()
 
-    def iter_nodes_by_layer(self):
+    def iter_nodes_from_root(self):
         """Returns a list where it is guaranteed that the first
         item is the root node, the next consecutive items are its
         immediate children, the items after those are the layer below 

@@ -56,7 +56,7 @@ class TestDependencyTree(unittest.TestCase):
 
         tree = DependencyTree('answer')
         tree.root = B
-        res = tree.iter_nodes_by_layer()
+        res = tree.iter_nodes_from_root()
 
         self.assertTrue(res.index(B) == 0)
         self.assertTrue(0 < res.index(A) < 3)
