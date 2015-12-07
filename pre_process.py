@@ -7,7 +7,6 @@ from datetime import datetime
 from nltk.parse import stanford
 from config import get_config
 from dependency_tree import tree_from_stanford_parse_tuples
-from nltk.tag.stanford import StanfordNERTagger
 
 
 
@@ -47,14 +46,8 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 	with open(csv_pickle, 'rb') as csvfile:
 		csv_questions = cPickle.load(csvfile)
 
-	
-	#CLASSPATH = "./stanford-ner-2015-04-20/stanford-postagger.jar"
-	#STANFORD_MODELS =  "./stanford-ner-2015-04-20/"
-	#from nltk.tag.stanford import NERTagger
-
-	st = StanfordNERTagger('/Users/gidekull/Downloads/questions 2/qanta2/gitqanta/QANTA2/stanford-ner-2015-04-20/classifiers/english.all.3class.distsim.crf.ser.gz', './stanford-ner-2015-04-20/stanford-ner.jar') 
-	#r=st.tag('Rami Eid is studying at Stony Brook University in NY'.split())
-	#print(r) 
+	# Quick and dirty
+	sent_replacements = (('1/2', ''),)
 
 	temp_answers = []
 	sentence_ID = []
@@ -78,6 +71,8 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 			for sentence in questions[4]:
 				for k in range(len(temp_answers)):
 					sentence = sentence.replace(temp_answers[k], answers[k])
+				for string, sub in sent_replacements:
+					sentence = sentence.replace(string, sub)
 				sentences.append(sentence)
 				sentence_ID.append(questions[0])
 
@@ -122,30 +117,27 @@ def dependency_parse(sentences_path, target_path=None):
 			dep1, dep2 being index_in_sentence for the dependent words
 	"""
 
+	# Initialize target file so we can append to it later
 	with open(target_path, 'wb') as f:
 		cPickle.dump("", f)
 
 	with open(sentences_path, 'rb') as sentencesfile:
 		sentences1 = cPickle.load(sentencesfile)
 
+	config = get_config('Stanford Parser')
+	# E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser.jar
+	os.environ['STANFORD_PARSER'] = config['STANFORD_PARSER']
+	# E.g.
+	# /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser-3.5.2-models.jar
+	os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
+
+	parser = stanford.StanfordDependencyParser()
+	# We can set java options through java_options. They default to '-mx1000m'
+
 	for k in range(len(sentences1)/100):
 		print "Batch " + str(k + 1) + " of " + str((len(sentences1)+2)/100)
-		if len(sentences1) - (k+1)*100  < 100:
-			sentences = sentences1[k*100:len(sentences1)]
-		else:
-			sentences = sentences1[k*100:(k+1)*100]
-
-		#break
-
-		config = get_config('Stanford Parser')
-		# E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser.jar
-		os.environ['STANFORD_PARSER'] = config['STANFORD_PARSER']
-		# E.g.
-		# /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser-3.5.2-models.jar
-		os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
-
-		parser = stanford.StanfordDependencyParser()
-		# We can set java options through java_options. They default to '-mx1000m'
+	
+		sentences = sentences1[k*100:(k+1)*100]		
 
 		parsed = parser.raw_parse_sents(sentences)
 
