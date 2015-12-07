@@ -56,7 +56,6 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 	#r=st.tag('Rami Eid is studying at Stony Brook University in NY'.split())
 	#print(r) 
 
-	temp_string = "bjhvgkhvmnbvjvh"
 	temp_answers = []
 	sentence_ID = []
 	sentences = []
@@ -64,7 +63,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 	question_information = {}
 
 	for questions in csv_questions:
-		if questions[1] == set_choice:
+		if questions[1] == set_choice and 'History' in questions[2]:
 			#temp = questions[3].split()
 			temp_string = questions[3]
 			questions[3] = questions[3].replace(" ", "_")
@@ -75,7 +74,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 				temp_answers.append(temp_string)
 
 	for questions in csv_questions:
-		if questions[1] == set_choice:
+		if questions[1] == set_choice and 'History' in questions[2]:
 			for sentence in questions[4]:
 				for k in range(len(temp_answers)):
 					sentence = sentence.replace(temp_answers[k], answers[k])
@@ -130,14 +129,13 @@ def dependency_parse(sentences_path, target_path=None):
 		sentences1 = cPickle.load(sentencesfile)
 
 	for k in range(len(sentences1)/100):
-		if (k+1)*100 - len(sentences1) < 100:
+		print "Batch " + str(k + 1) + " of " + str((len(sentences1)+2)/100)
+		if len(sentences1) - (k+1)*100  < 100:
 			sentences = sentences1[k*100:len(sentences1)]
 		else:
 			sentences = sentences1[k*100:(k+1)*100]
-	
-		#print sentences
-		#break
 
+		#break
 
 		config = get_config('Stanford Parser')
 		# E.g. /usr/local/Cellar/stanford-parser/3.5.2/libexec/stanford-parser.jar
@@ -286,7 +284,7 @@ def main():
 		description='QANTA preprocessing: Going from CSV question files to QANTA format')
 	raw_args.add_argument('-s', '--source', dest='source_file',
 						  help='location of source CSV file',
-						  type=str, default="./his-questions.csv")
+						  type=str, default="./questions.csv")
 	raw_args.add_argument('-o', '--output', dest='output_file',
 						  help='location of output file', type=str)
 	raw_args.add_argument('--set-choice', dest='set_choice',
