@@ -29,8 +29,8 @@ def Something(input_folder):
 
 	print tree_list[23]
 
-	qanta = QANTA(dimension, vocabulary, dependency, answers)
+	qanta = QANTA(dimension, vocabulary, dependency)
 
-	qanta.train(tree_list)
+	qanta.train(tree_list, 100, 1)
 
 Something("./output")
