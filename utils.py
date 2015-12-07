@@ -38,3 +38,54 @@ class Adagrad(object):
         self.sum_of_squared_gradients += np.square(gradients)
         denominators = np.sqrt(self.sum_of_squared_gradients)
         return self.learning_rate / denominators
+
+
+def find_missing(data, process, lo=0, hi=None, n_missing=None):
+    """Use case: process(data) returns too few elements. Which are missing?
+    This method will tell you. 
+
+    data is a listlike with order preserved
+    process is a method that can take data as an argument, and returns a 
+        listlike. It is assumed to be deterministic in its error.
+    lo is the lowest index (inclusive) for where the error(s) can be.
+        Default is 0.
+    hi is the highest index (exclusive) for where the error(s) can be.
+        Default is len(data)
+
+    Returns a list of indices of the data points that disappear.
+    If nothing disappears, the list is empty.
+    """
+    if hi is None:
+        hi = len(data)
+
+    if hi <= lo:
+        return []
+
+    if n_missing is None:
+        d = data[lo:hi]
+        res = list(process(d))
+    
+        n_missing = len(d) - len(res)
+
+        # None missing?
+        if n_missing == 0:
+            return []
+
+        # All missing?
+        if n_missing == len(d):
+            return range(lo, hi)
+
+    # Binary search
+    midway = ((hi-lo)/2) + lo
+
+    # Get indices of missing items in lower half of data slice
+    lo_miss = find_missing(data, process, lo, midway)
+
+    # Can we exit without checking higher half?
+    if len(lo_miss) == n_missing:
+        return lo_miss
+
+    # Get indices of missing items in upper half of data slice
+    hi_miss = find_missing(data, process, midway, hi)
+
+    return lo_miss + hi_miss
