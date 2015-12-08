@@ -35,12 +35,14 @@ def run(input_folder, dimensionality):
 
     qanta = QANTA(dimensionality, vocabulary, dependency)
 
-    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1)
+
+    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=5)
 
     model_path = os.path.join(input_folder, 'model')
     with open(model_path, 'wb') as f:
         cPickle.dump(qanta, f)
     print "Saved model in {}".format(model_path)
+
 
 
 if __name__ == '__main__':
