@@ -89,3 +89,33 @@ def find_missing(data, process, lo=0, hi=None, n_missing=None):
     hi_miss = find_missing(data, process, midway, hi)
 
     return lo_miss + hi_miss
+
+def split(data, n_slices=None):
+    """returns a generator of n_slices data slices, with
+    data slice length varying by at most 1 (if the data 
+    cannot be evenly split), and always so that the
+    first slices are 1 longer or of equal length to the last
+    slices.
+
+    Data order is retained, and itertools.chain(split(data, n)) == data
+
+    Example:
+        >>> list(split(['a', 'b', 'c', 'd'], 3))
+        [['a', 'b'], ['c'], ['d']]
+        >>> list(split(['a', 'b', 'c', 'd', 'e', 'f'], 2))
+        [['a', 'b', 'c'], ['d', 'e', 'f']]
+        >>> list(split(['a', 'b', 'c', 'd', 'e', 'f'], 4))
+        [['a', 'b'], ['c', 'd'], ['e'], ['f']]
+    """
+    
+    a,b = divmod(len(data), n_slices)
+    if a == 0: # data size smaller than the wanted number of slices
+        return ((d,) for d in data)
+
+    # chunk sizes
+    cs = b*[a+1] + ((len(data) - b*(a+1))/a)*[a]
+
+    # chunk indices in data
+    ci = [sum(cs[:i]) for i in xrange(len(cs))] + [sum(cs)]
+
+    return (data[ci[i]:ci[i+1]] for i in xrange(len(ci) - 1))

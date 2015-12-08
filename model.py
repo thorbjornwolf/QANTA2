@@ -1,17 +1,18 @@
 """This module contains the QANTA MV-RNN model
 """
 
+from multiprocess import Pool, cpu_count
 import numpy as np
 from time import time
 
-from utils import Adagrad, dtanh, normalize
+import utils
 
 class QANTA(object):
     """MV-RNN for DependencyTrees"""
 
     def __init__(self, dimensionality, vocabulary, dependency_dict,
                  learning_rate=0.05, nonlinearity=np.tanh, 
-                 d_nonlinearity=dtanh, embeddings_file=None):
+                 d_nonlinearity=utils.dtanh, embeddings_file=None):
         """dimensionality is a positive integer representing
             how many dimensions should go into word and relation 
             embeddings.
@@ -41,10 +42,10 @@ class QANTA(object):
 
         # TODO Consider how to do this in a more loopable, less verbose,
         # but still reader-friendly way
-        self.adagrad_We = Adagrad(learning_rate)
-        self.adagrad_Wr = Adagrad(learning_rate)
-        self.adagrad_Wv = Adagrad(learning_rate)
-        self.adagrad_b = Adagrad(learning_rate)
+        self.adagrad_We = utils.Adagrad(learning_rate)
+        self.adagrad_Wr = utils.Adagrad(learning_rate)
+        self.adagrad_Wv = utils.Adagrad(learning_rate)
+        self.adagrad_b = utils.Adagrad(learning_rate)
 
     def generate_embeddings(self, lo=-1, hi=1):
         """Generates We, Wr, Wb, and b and sets them in
@@ -102,45 +103,95 @@ class QANTA(object):
         
         # Make sure we can sample n_incorrect_answers different answers.
         if len(answers) - 1 < n_incorrect_answers:
-        #     print ("Cannot sample without replacement from {} answers, as "
-        #            "only {} answers are available. Setting "
-        #            "n_incorrect_answers down to {}.").format(
-        #            n_incorrect_answers, len(answers), len(answers) - 1)
-            
             n_incorrect_answers = len(answers) - 1
 
         # QANTA original code says 'ideally 25 minibatches per epoch'
         n_batches = n_batches or min(25, len(trees))
         batch_size = len(trees) / n_batches
 
+        if cpu_count() < batch_size:
+            trainer = self._train_batch_parallelize
+        else:
+            # No reason to parallelize
+            trainer = self._train_batch
+
         for epoch in xrange(n_epochs):
             epoch_error = 0
             epoch_start = time()
             for batch in xrange(n_batches):
                 batch_start = time()
-                lo = batch*batch_size
+
+                # Index range for this batch
+                lo = batch * batch_size
                 hi = lo + batch_size
+
                 batch_trees = trees[lo:hi]
-                batch_error = self._train_batch(batch_trees, n_incorrect_answers)
+
+                # Parallel training
+                batch_error = trainer(batch_trees, n_incorrect_answers)
+                # Serial training
+                # batch_error = self._train_batch(batch_trees, n_incorrect_answers)
+
                 # Only print batch stats if it takes more than 5 seconds
                 if time() - batch_start > 5:
-                    print "Training error epoch {}, batch {}: {}".format(
-                        epoch, batch, batch_error)
+                    print ("Training error epoch {}, batch {}: {} "
+                           "({:.2f} seconds)").format(epoch, batch, 
+                           batch_error, time() - batch_start)
                 epoch_error += batch_error
+
             if time() - epoch_start > 5:
                 print ("Total training error for epoch {}: {} "
-                       "({} seconds)".format(epoch, epoch_error, 
-                        time() - epoch_start))
+                       "({:.2f} seconds)").format(epoch, epoch_error, 
+                        time() - epoch_start)
 
-    def _train_batch(self, trees, n_incorrect_answers, shuffle=True):
+    def _train_batch_parallelize(self, trees, n_incorrect_answers):
+        """Parallelizes training for a list of trees.
+        Uses the number of threads given by multiprocessing.cpu_count()
+
+        Updates model parameters directly, and returns batch error.
+        """
+        # Defaults to using cpu_count() threads
+        pool = Pool()
+        
+        def get_subbatch_deltas(_trees):
+            return self._train_batch(_trees, n_incorrect_answers, 
+                                     apply_learning=False)
+
+        subbatches = utils.split(trees, n_slices=cpu_count())
+
+        # result will be a list of tuples (error, deltas)
+        result = pool.map(get_subbatch_deltas, subbatches)
+
+        # no more processes accepted by this pool
+        pool.close()   
+        # Wait until mapping is completed
+        pool.join()
+
+        error = sum([r[0] for r in result])
+        deltas = [r[1] for r in result]
+        for (delta_Wv, delta_b, delta_We, delta_Wr) in deltas:
+            self.Wv -= delta_Wv
+            self.b -=  delta_b
+            self.We -= delta_We
+            self.Wr -= delta_Wr
+
+        return error
+
+    def _train_batch(self, trees, n_incorrect_answers, shuffle=True, 
+                     apply_learning=True):
         """Performs a single training run over the given trees.
         
         trees is a list of DependencyTree
         n_incorrect_answers is the number of answers used as 
             negative samples
         shuffle indicates whether or not to shuffle the tree list
+        apply_learning indicates whether to apply the learned deltas
+            directly to this model's parameters, or rather return them.
+            If false, returns (batch error, deltas) where deltas are 
+            (delta_Wv, delta_b, delta_We, delta_Wr)
 
-        Returns epoch error in accordance with eq. 6
+        Returns batch error in accordance with eq. 6, or
+        (batch error, deltas) if apply_learning is False
         """
         if shuffle:
             np.random.shuffle(trees)
@@ -160,6 +211,12 @@ class QANTA(object):
         # Eq. 6: Sum of error over all sentences, divided by number of nodes
         n_nodes = sum((t.n_nodes() for t in trees))
         se = error / n_nodes
+        # se is a single value in a two-dimensional array
+        try:
+            se = se[0][0]
+        except TypeError:
+            # But it is not always for some reason!
+            pass
 
         # Initialize deltas
         d = self.dimensionality
@@ -181,12 +238,14 @@ class QANTA(object):
         self.adagrad_scale(*deltas) # delta_Wv, delta_b, delta_We, delta_Wr
 
         # Apply learning
-        self.Wv -= delta_Wv
-        self.b -=  delta_b
-        self.We -= delta_We
-        self.Wr -= delta_Wr
-
-        return se
+        if apply_learning:
+            self.Wv -= delta_Wv
+            self.b -=  delta_b
+            self.We -= delta_We
+            self.Wr -= delta_Wr
+            
+            return se
+        return se, deltas
 
     def forward_propagate(self, tree, wrong_answers):
         """Calculates tree-wide error and node-wise answer_delta, as well
@@ -289,7 +348,7 @@ class QANTA(object):
         self.set_hidden_representations(tree)
         pred_vector = np.sum([n.hidden_norm for n in tree.iter_nodes()], axis=0)
         ptmp = pred_vector
-        pred_vector = normalize(pred_vector)
+        pred_vector = utils.normalize(pred_vector)
 
         ans_idx = map(self.word2index, self.answers)
         candidates = self.We[ans_idx]
@@ -338,7 +397,7 @@ class QANTA(object):
             f = self.nonlinearity
             word_hidden = self.Wv.dot(self.word2embedding(node.word))
             node.hidden = f(word_hidden + children_sum + self.b)
-            node.hidden_norm = normalize(node.hidden)
+            node.hidden_norm = utils.normalize(node.hidden)
 
     #### Utility methods ####
 
@@ -370,4 +429,3 @@ class QANTA(object):
         delta_b  *= self.adagrad_b.get_scale(delta_b)
         delta_We *= self.adagrad_We.get_scale(delta_We)
         delta_Wr *= self.adagrad_Wr.get_scale(delta_Wr)
-
