@@ -36,11 +36,11 @@ def run(input_folder, dimensionality):
     qanta = QANTA(dimensionality, vocabulary, dependency)
 
     qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1,
-                    print_training_accuracy=True)
+                    debug=True)
 
 
 if __name__ == '__main__':
-    source_path = 'output-hist'
+    source_path = 'parsed_data/hist'
     dimensionality = 50
 
     print "Running main_QANTA for data in {}".format(source_path)
