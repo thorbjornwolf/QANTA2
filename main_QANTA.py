@@ -35,8 +35,7 @@ def run(input_folder, dimensionality):
 
     qanta = QANTA(dimensionality, vocabulary, dependency)
 
-    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1,
-                    debug=True)
+    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=2)
 
 
 if __name__ == '__main__':
