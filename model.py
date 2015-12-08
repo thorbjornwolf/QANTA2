@@ -114,17 +114,23 @@ class QANTA(object):
         batch_size = len(trees) / n_batches
 
         for epoch in xrange(n_epochs):
-
+            epoch_error = 0
+            epoch_start = time()
             for batch in xrange(n_batches):
-                start = time()
+                batch_start = time()
                 lo = batch*batch_size
                 hi = lo + batch_size
                 batch_trees = trees[lo:hi]
-                error = self._train_batch(batch_trees, n_incorrect_answers)
+                batch_error = self._train_batch(batch_trees, n_incorrect_answers)
                 # Only print batch stats if it takes more than 5 seconds
-                if time() - start > 5:
-                    print "Training error epoch {}, batch {}: {:.3}".format(
-                        epoch, batch, error)
+                if time() - batch_start > 5:
+                    print "Training error epoch {}, batch {}: {}".format(
+                        epoch, batch, batch_error)
+                epoch_error += batch_error
+            if time() - epoch_start > 5:
+                print ("Total training error for epoch {}: {} "
+                       "({} seconds)".format(epoch, epoch_error, 
+                        time() - epoch_start))
 
     def _train_batch(self, trees, n_incorrect_answers, shuffle=True):
         """Performs a single training run over the given trees.
