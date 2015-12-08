@@ -130,6 +130,7 @@ def trees_from_stanford_parse_tuples(list_of_stanford_parse_tuples,
     for sptuple, answer in zip(list_of_stanford_parse_tuples, answers):
         output.append(tree_from_stanford_parse_tuples(sptuple, answer, 
                                                 vocabulary, dependency_dict))
+    return output
 
 
 def tree_from_stanford_parse_tuples(stanford_parse_tuples, answer, 
