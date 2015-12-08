@@ -82,7 +82,7 @@ class QANTA(object):
             if word in model:
                 self.We[index] = model[word]
 
-    def train(self, trees, n_incorrect_answers=100, n_epochs=30, print_training_accuracy=False):
+    def train(self, trees, n_incorrect_answers=100, n_epochs=30, n_batches=None, debug=False):
         """Trains the QANTA model on the sentence trees.
 
         trees is a list of DependencyTree
@@ -107,13 +107,22 @@ class QANTA(object):
             
             n_incorrect_answers = len(answers) - 1
 
-        for epoch in xrange(n_epochs):
-            self._train_epoch(trees, n_incorrect_answers, shuffle=True)
-            if print_training_accuracy:
-                print "Training accuracy at epoch {}: {:.3}".format(epoch, 
-                                                self.get_accuracy(trees))
+        # QANTA original code says 'ideally 25 minibatches per epoch'
+        n_batches = n_batches or min(25, len(trees))
+        batch_size = len(trees) / n_batches
 
-    def _train_epoch(self, trees, n_incorrect_answers, shuffle=True):
+        for epoch in xrange(n_epochs):
+            for batch in xrange(n_batches):
+                lo = batch*batch_size
+                hi = lo + batch_size
+                batch_trees = trees[lo:hi]
+                self._train_batch(batch_trees, n_incorrect_answers, 
+                                  shuffle=True, debug=debug)
+                if debug:
+                    print "Training accuracy epoch {}, batch {}: {:.3}".format(
+                        epoch, batch, self.get_accuracy(trees))
+
+    def _train_batch(self, trees, n_incorrect_answers, shuffle=True, debug=False):
         """Performs a single training run over the given trees.
         
         trees is a list of DependencyTree
@@ -125,7 +134,11 @@ class QANTA(object):
         """
         if shuffle:
             np.random.shuffle(trees)
+            if debug:
+                print "\tShuffled trees"
 
+        if debug:
+            print "\tStarting forward prop on {} trees".format(len(trees))
         for tree in trees:
             # Sample from all other answers than the present one
             incorrect_answers = [x for x in self.answers if x != tree.answer]
@@ -135,12 +148,15 @@ class QANTA(object):
                                                  replace=False)
             # Calculate hidden representations and tree error
             self.forward_propagate(tree, incorrect_answers)
+            print "\t.",
+        print ""
         
         error = sum([tree.error for tree in trees])
 
         # Eq. 6: Sum of error over all sentences, divided by number of nodes
         n_nodes = sum((t.n_nodes() for t in trees))
         se = error / n_nodes
+        print "\tNormalized sum of errors: {}".format(se)
 
         # Initialize deltas
         d = self.dimensionality
@@ -151,9 +167,13 @@ class QANTA(object):
 
         deltas = (delta_Wv, delta_b, delta_We, delta_Wr)
 
+        if debug:
+            print "\tStarting backward prop on {} trees".format(len(trees))
         # Backpropagation
         for tree in trees:
             self.back_propagate(tree, *deltas)
+            print "\t.",
+        print ""
 
         # Scale deltas
         for d in deltas:
