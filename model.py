@@ -148,8 +148,6 @@ class QANTA(object):
                                                  replace=False)
             # Calculate hidden representations and tree error
             self.forward_propagate(tree, incorrect_answers)
-            print "\t.",
-        print ""
         
         error = sum([tree.error for tree in trees])
 
@@ -172,8 +170,6 @@ class QANTA(object):
         # Backpropagation
         for tree in trees:
             self.back_propagate(tree, *deltas)
-            print "\t.",
-        print ""
 
         # Scale deltas
         for d in deltas:
@@ -314,16 +310,23 @@ class QANTA(object):
         and stores it in node.hidden. Additionally calculates the normalized
         hidden representation and stores it in node.hidden_norm.
 
+        This is the paper's equation 4.
+
         Does not return anything, but modifies tree and nodes directly.
         """
         # Start with bottom-most leaf nodes, then the layer above,
         # et cetera up to the root
         for node in reversed(tree.iter_nodes_from_root()):
-            children_values = np.zeros((self.dimensionality,1))
+            children_sum = None
             for c in node.children:
                 val = self.dep2embedding(c.dependency).dot(c.hidden_norm)
-                children_values += val
-            children_sum = sum(children_values)
+                assert val.shape == (self.dimensionality,1) 
+                if children_sum is None:
+                    children_sum = val
+                else:
+                    children_sum += val
+
+            assert children_sum.shape == (self.dimensionality,1) 
 
             f = self.nonlinearity
             word_hidden = self.Wv.dot(self.word2embedding(node.word))
