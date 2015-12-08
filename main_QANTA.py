@@ -27,8 +27,8 @@ def run(input_folder, dimensionality):
     with open(dependency_path, 'rb') as dependency_file:
         dependency = cPickle.load(dependency_file)
 
-    with open(answers_path, 'rb') as answerfile:
-        answers = cPickle.load(answerfile)
+#    with open(answers_path, 'rb') as answerfile:
+#        answers = cPickle.load(answerfile)
 
     with open(tree_list_path, 'rb') as tree_list_file:
         tree_list = cPickle.load(tree_list_file)
@@ -36,11 +36,11 @@ def run(input_folder, dimensionality):
     qanta = QANTA(dimensionality, vocabulary, dependency)
 
     qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1,
-                    print_training_accuracy=True)
+                    debug=True)
 
 
 if __name__ == '__main__':
-    source_path = 'output-hist'
+    source_path = 'parsed_data/hist'
     dimensionality = 50
 
     print "Running main_QANTA for data in {}".format(source_path)
