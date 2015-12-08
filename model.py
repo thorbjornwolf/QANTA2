@@ -82,7 +82,7 @@ class QANTA(object):
             if word in model:
                 self.We[index] = model[word]
 
-    def train(self, trees, n_incorrect_answers=100, n_epochs=30):
+    def train(self, trees, n_incorrect_answers=100, n_epochs=30, print_training_accuracy=False):
         """Trains the QANTA model on the sentence trees.
 
         trees is a list of DependencyTree
@@ -109,6 +109,9 @@ class QANTA(object):
 
         for epoch in xrange(n_epochs):
             self._train_epoch(trees, n_incorrect_answers, shuffle=True)
+            if print_training_accuracy:
+                print "Training accuracy at epoch {}: {:.3}".format(epoch, 
+                                                self.get_accuracy(trees))
 
     def _train_epoch(self, trees, n_incorrect_answers, shuffle=True):
         """Performs a single training run over the given trees.
@@ -275,6 +278,16 @@ class QANTA(object):
 
     def predict_many(self, trees):
         return [self.predict(t) for t in trees]
+
+    def get_accuracy(self, trees):
+        pred = self.predict_many(trees)
+        truth = [t.answer for t in trees]
+        n_correct = 0
+        for p,t in zip(pred, truth):
+            if p == t: 
+                n_correct += 1
+
+        return float(n_correct) / len(pred)
 
     def set_hidden_representations(self, tree):
         """For each node in the tree, calculates the hidden representation

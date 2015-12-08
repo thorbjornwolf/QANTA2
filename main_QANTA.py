@@ -2,9 +2,7 @@ from model import QANTA
 import os
 import cPickle
 
-def Something(input_folder):
-
-	dimension = 50 #change dimension!
+def run(input_folder, dimensionality):
 
 	sentence_ID_path = os.path.join(input_folder, "sentence_ID") #all the sentence_IDs in a list
 	sentences_path = os.path.join(input_folder, "sentences") #all sentences in a list
@@ -27,10 +25,16 @@ def Something(input_folder):
 	with open(tree_list_path, 'rb') as tree_list_file:
 		tree_list = cPickle.load(tree_list_file)
 
-	print tree_list[23]
+	qanta = QANTA(dimensionality, vocabulary, dependency)
 
-	qanta = QANTA(dimension, vocabulary, dependency)
+	qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1,
+					print_training_accuracy=True)
 
-	qanta.train(tree_list, 100, 1)
 
-Something("./output")
+if __name__ == '__main__':
+	source_path = 'output_hist'
+	dimensionality = 50
+
+	print "Running main_QANTA for data in {}".format(source_path)
+
+	run(source_path, dimensionality)
