@@ -51,6 +51,8 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
     # Quick and dirty
     sent_replacements = (('1/2', ''),)
 
+    csv_questions = csv_questions[:10]
+
     temp_answers = []
     sentence_ID = []
     sentences = []
@@ -279,25 +281,39 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
     Basically takes the csv file and outputs all the data structure needed
     for the model"""
 
-    process_dir = os.path.join(process_dir, set_choice)
     # CSV imported
     parsed_csv_path = os.path.join(process_dir, "parsed_csv")
+    parsed_csv_path = parsed_csv_path + "_" + set_choice
+
     # all the sentence_IDs in a list
     sentence_ID_path = os.path.join(process_dir, "sentence_ID")
+    sentence_ID_path = sentence_ID_path + "_" + set_choice
     # all sentences in a list
     sentences_path = os.path.join(process_dir, "sentences")
+    sentences_path = sentences_path + "_" + set_choice
     # answers in a list
     answers_path = os.path.join(process_dir, "answers") 
+    answers_path = answers_path + "_" + set_choice
+
     # dictionary with all info
     question_info_path = os.path.join(process_dir, "question_info")
+    question_info_path = question_info_path + "_" + set_choice
+
     # All the stanford parsed sentences
     stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
+    stanford_parsed_path = stanford_parsed_path + "_" + set_choice
+
     # dictionary with all the words
     vocabulary_path = os.path.join(process_dir, "vocabulary")
+    vocabulary_path = vocabulary_path + "_" + set_choice
+
     # dictionary with all the dependencies
     dependency_path = os.path.join(process_dir, "dependency_vocabulary")
+    dependency_path = dependency_path + "_" + set_choice
+
     # list of all the tree
     tree_list_path = os.path.join(process_dir, "tree_list")
+    tree_list_path = tree_list_path + "_" + set_choice
 
     if start_from <= 1:
         parse_question_csv(csv_file, parsed_csv_path)

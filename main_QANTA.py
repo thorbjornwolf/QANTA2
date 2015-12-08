@@ -2,21 +2,27 @@ from model import QANTA
 import os
 import cPickle
 
-def run(input_folder, dimensionality):
+def Something(input_folder):
 
-	train_folder = os.path.join(process_dir, "train")
+	dimension = 50 #change dimension!
 
-	stanford_parsed_path = os.path.join(train_folder, "stanford_parsed") 
-	vocabulary_path = os.path.join(train_folder, "vocabulary")
-	dependency_path = os.path.join(train_folder, "dependency_vocabulary")
-	tree_list_path = os.path.join(train_folder, "tree_list")
 
-	test_folder = os.path.join(process_dir, "test")
 
-	stanford_parsed_path = os.path.join(test_folder, "stanford_parsed") 
-	vocabulary_path = os.path.join(test_folder, "vocabulary")
-	dependency_path = os.path.join(test_folder, "dependency_vocabulary")
-	tree_list_path = os.path.join(test_folder, "tree_list")
+    # dictionary with all info
+    question_info_path = os.path.join(input_folder, "question_info")
+    question_info_path = question_info_path + "_" + set_choice
+
+    # dictionary with all the words
+    vocabulary_path = os.path.join(input_folder, "vocabulary")
+    vocabulary_path = vocabulary_path + "_" + set_choice
+
+    # dictionary with all the dependencies
+    dependency_path = os.path.join(input_folder, "dependency_vocabulary")
+    dependency_path = dependency_path + "_" + set_choice
+
+    # list of all the tree
+    tree_list_path = os.path.join(input_folder, "tree_list")
+    tree_list_path = tree_list_path + "_" + set_choice
 
 	with open(vocabulary_path, 'rb') as vocabulary_file:
 		vocabulary = cPickle.load(vocabulary_file)
@@ -30,16 +36,10 @@ def run(input_folder, dimensionality):
 	with open(tree_list_path, 'rb') as tree_list_file:
 		tree_list = cPickle.load(tree_list_file)
 
-	qanta = QANTA(dimensionality, vocabulary, dependency)
+	print tree_list[23]
 
-	qanta.train(tree_list, n_incorrect_answers=100, n_epochs=1,
-					print_training_accuracy=True)
+	qanta = QANTA(dimension, vocabulary, dependency)
 
+	qanta.train(tree_list, 100, 1)
 
-if __name__ == '__main__':
-	source_path = 'output_hist'
-	dimensionality = 50
-
-	print "Running main_QANTA for data in {}".format(source_path)
-
-	run(source_path, dimensionality)
+Something("./output")
