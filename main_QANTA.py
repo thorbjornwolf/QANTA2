@@ -36,7 +36,7 @@ def run(input_folder, dimensionality):
     qanta = QANTA(dimensionality, vocabulary, dependency)
 
 
-    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=5)
+    qanta.train(tree_list, n_incorrect_answers=100, n_epochs=6)
 
     model_path = os.path.join(input_folder, 'model')
     with open(model_path, 'wb') as f:
