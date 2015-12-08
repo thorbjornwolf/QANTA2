@@ -325,8 +325,11 @@ class QANTA(object):
                     children_sum = val
                 else:
                     children_sum += val
-
-            assert children_sum.shape == (self.dimensionality,1) 
+            
+            if children_sum is None:
+                children_sum = 0
+            else:
+                assert children_sum.shape == (self.dimensionality,1) 
 
             f = self.nonlinearity
             word_hidden = self.Wv.dot(self.word2embedding(node.word))
