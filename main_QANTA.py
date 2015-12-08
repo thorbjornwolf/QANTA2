@@ -32,7 +32,7 @@ def run(input_folder, dimensionality):
 
 
 if __name__ == '__main__':
-	source_path = 'output_hist'
+	source_path = 'output-hist'
 	dimensionality = 50
 
 	print "Running main_QANTA for data in {}".format(source_path)
