@@ -4,14 +4,14 @@ import cPickle
 
 def run(input_folder, dimensionality):
 
-	train_folder = os.path.join(process_dir, "train")
+	train_folder = os.path.join(input_folder, "train")
 
 	stanford_parsed_path = os.path.join(train_folder, "stanford_parsed") 
 	vocabulary_path = os.path.join(train_folder, "vocabulary")
 	dependency_path = os.path.join(train_folder, "dependency_vocabulary")
 	tree_list_path = os.path.join(train_folder, "tree_list")
 
-	test_folder = os.path.join(process_dir, "test")
+	test_folder = os.path.join(input_folder, "test")
 
 	stanford_parsed_path = os.path.join(test_folder, "stanford_parsed") 
 	vocabulary_path = os.path.join(test_folder, "vocabulary")
