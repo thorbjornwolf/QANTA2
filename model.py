@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+from time import time
 
 from utils import Adagrad, dtanh, normalize
 
@@ -82,7 +83,8 @@ class QANTA(object):
             if word in model:
                 self.We[index] = model[word]
 
-    def train(self, trees, n_incorrect_answers=100, n_epochs=30, n_batches=None, debug=False):
+    def train(self, trees, n_incorrect_answers=100, 
+              n_epochs=30, n_batches=None):
         """Trains the QANTA model on the sentence trees.
 
         trees is a list of DependencyTree
@@ -112,17 +114,19 @@ class QANTA(object):
         batch_size = len(trees) / n_batches
 
         for epoch in xrange(n_epochs):
+
             for batch in xrange(n_batches):
+                start = time()
                 lo = batch*batch_size
                 hi = lo + batch_size
                 batch_trees = trees[lo:hi]
-                self._train_batch(batch_trees, n_incorrect_answers, 
-                                  shuffle=True, debug=debug)
-                if debug:
-                    print "Training accuracy epoch {}, batch {}: {:.3}".format(
-                        epoch, batch, self.get_accuracy(trees))
+                error = self._train_batch(batch_trees, n_incorrect_answers)
+                # Only print batch stats if it takes more than 5 seconds
+                if time() - start > 5:
+                    print "Training error epoch {}, batch {}: {:.3}".format(
+                        epoch, batch, error)
 
-    def _train_batch(self, trees, n_incorrect_answers, shuffle=True, debug=False):
+    def _train_batch(self, trees, n_incorrect_answers, shuffle=True):
         """Performs a single training run over the given trees.
         
         trees is a list of DependencyTree
@@ -134,11 +138,7 @@ class QANTA(object):
         """
         if shuffle:
             np.random.shuffle(trees)
-            if debug:
-                print "\tShuffled trees"
 
-        if debug:
-            print "\tStarting forward prop on {} trees".format(len(trees))
         for tree in trees:
             # Sample from all other answers than the present one
             incorrect_answers = [x for x in self.answers if x != tree.answer]
@@ -154,7 +154,6 @@ class QANTA(object):
         # Eq. 6: Sum of error over all sentences, divided by number of nodes
         n_nodes = sum((t.n_nodes() for t in trees))
         se = error / n_nodes
-        print "\tNormalized sum of errors: {}".format(se)
 
         # Initialize deltas
         d = self.dimensionality
@@ -165,8 +164,6 @@ class QANTA(object):
 
         deltas = (delta_Wv, delta_b, delta_We, delta_Wr)
 
-        if debug:
-            print "\tStarting backward prop on {} trees".format(len(trees))
         # Backpropagation
         for tree in trees:
             self.back_propagate(tree, *deltas)
@@ -175,7 +172,7 @@ class QANTA(object):
         for d in deltas:
             d /= n_nodes
 
-        self.adagrad_scale(*deltas)#delta_Wv, delta_b, delta_We, delta_Wr)
+        self.adagrad_scale(*deltas) # delta_Wv, delta_b, delta_We, delta_Wr
 
         # Apply learning
         self.Wv -= delta_Wv
@@ -201,6 +198,8 @@ class QANTA(object):
             node.hidden
             node.hidden_norm
 
+        This is reminiscent of eq. 5, although L and rank are not used.
+
         Does not return anything, but modifies tree and its nodes directly.
         """
 
@@ -215,15 +214,15 @@ class QANTA(object):
             answer_similarity = tree_answer_We.T.dot(node.hidden_norm)
             base_error = 1 - answer_similarity
 
-            for a in wrong_answers:
-                # 3,1
-                a_We = self.word2embedding(a)
-                # 3,1
-                similarity = a_We.T.dot(node.hidden_norm)
-                a_error = base_error + similarity
-                if a_error > 0:
-                    tree.error += a_error
-                    node.answer_delta += a_We - tree_answer_We
+            for z in wrong_answers:
+                # d,1
+                z_We = self.word2embedding(z)
+                # d,1
+                similarity = z_We.T.dot(node.hidden_norm)
+                z_error = base_error + similarity
+                if z_error > 0:
+                    tree.error += z_error
+                    node.answer_delta += z_We - tree_answer_We
 
     def back_propagate(self, tree, delta_Wv, delta_b, delta_We, delta_Wr):
         """Backpropagation in the same manner as seen in the original
@@ -236,7 +235,8 @@ class QANTA(object):
             node.hidden, its hidden representation seen in eq. 4, 
             node.hidden_norm, its normalized node.hidden vector.
 
-        Returns delta_Wv, delta_b, delta_We, delta_Wr
+        Modifies delta_Wv, delta_b, delta_We, delta_Wr
+        Returns nothing
         """
         
         deltas = dict()
@@ -272,8 +272,6 @@ class QANTA(object):
             delta_We[(index,),] += (self.Wv.dot(node_delta)).T
 
             deltas[node] = node_delta
-
-        return delta_Wv, delta_b, delta_We, delta_Wr
 
     def predict(self, tree):
         """Predicts the answer to a question stated in tree.
