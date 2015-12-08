@@ -124,9 +124,9 @@ def dependency_parse(sentences_path, target_path=None):
         filled with Nones
     """
 
-    # Initialize target file so we can append to it later
+    # Initialize target file so we can extend it later
     with open(target_path, 'wb') as f:
-        cPickle.dump("", f)
+        cPickle.dump([], f)
 
     with open(sentences_path, 'rb') as sentencesfile:
         sentences = cPickle.load(sentencesfile)
@@ -140,8 +140,9 @@ def dependency_parse(sentences_path, target_path=None):
     # libexec/stanford-parser-3.5.2-models.jar'
     os.environ['STANFORD_MODELS'] = config['STANFORD_MODELS']
 
-    parser = stanford.StanfordDependencyParser()
+    parser = stanford.StanfordDependencyParser(java_options='-mx10000m')
     # We can set java options through java_options. They default to '-mx1000m'
+
 
     batch_size = 100
     n_batches = (len(sentences) / batch_size) + 1
@@ -185,8 +186,15 @@ def dependency_parse(sentences_path, target_path=None):
 
             output.append(nodes)
 
-        with open(target_path, 'ab') as f:
-            cPickle.dump(output, f)
+        # Maybe a nasty way of storing the output:
+        # Append to the list already pickled to target file.
+        with open(target_path, 'rb') as f:
+            output_file_contents = cPickle.load(f)
+
+        output_file_contents.extend(output)
+
+        with open(target_path, 'wb') as f:
+            cPickle.dump(output_file_contents, f)
 
 
 def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
