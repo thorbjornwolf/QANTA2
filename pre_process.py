@@ -270,6 +270,8 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
     """Starts from whatever index that is specified in start_from. 
     Basically takes the csv file and outputs all the data structure needed
     for the model"""
+
+    process_dir = os.path.join(process_dir, set_choice)
     # CSV imported
     parsed_csv_path = os.path.join(process_dir, "parsed_csv")
     # all the sentence_IDs in a list
