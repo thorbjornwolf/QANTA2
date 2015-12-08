@@ -5,10 +5,10 @@
 ## Preprocessing
 - [x] Parse CSV (using built-in csv module)
 - [x] Ensure division in train, test sets is kept
-- [ ] Follow the paper's preprocessing by replacing all occurrences of answers in the question text with single entities (e.g., Ernest Hemingway becomes Ernest_Hemingway).
+- [x] Follow the paper's preprocessing by replacing all occurrences of answers in the question text with single entities (e.g., Ernest Hemingway becomes Ernest_Hemingway).
 - [ ] Train word embeddings on the preprocessed question text from the training data.
 - [x] Apply Stanford Parser to question sentences, get dependency tree as text
-    + [ ] Check whether it drops sentences when it is out of memory
+    + [x] Check whether it drops sentences
     + [ ] Check whether it splits sentence strings that are, in fact, two or more sentences. This happens in the question in line 136 in the 20k dataset.
 - [x] Build a word vocabulary that maps words to indices (later to be used in fetching word embeddings).
     + Either as a list where vocabulary.index(word) gives an index, or as a dict, where vocabulary[word] gives an index.
@@ -46,9 +46,11 @@
         * a list of incorrect answers
     + [x] Calculate objective function (eq. 6) (model.py:94)
     + [x] Do backpropagation through structure / AdaGrad (eq. 7 and supplementary reading)
-- [ ] Use batches in training
+- [x] Use batches in training
+- [ ] Parallelize training
 - [ ] Consider whether the tree error is ever used in backpropagation, and why it is not if it isn't
-- [ ] Build an overall method `QANTAModel.predict` that, given a tree returns the most likely answer (from the set of possible answers)
+- [x] Build an overall method `QANTAModel.predict` that, given a tree returns the most likely answer (from the set of possible answers)
+    + [ ] Consider using LogisticRegression in prediction, as in original QANTA
 - [ ] Actually train a model on the training set
 	
 ## Evaluation
