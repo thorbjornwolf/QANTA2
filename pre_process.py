@@ -51,7 +51,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
     # Quick and dirty
     sent_replacements = (('1/2', ''),)
 
-    csv_questions = csv_questions[:10]
+    csv_questions = csv_questions
 
     temp_answers = []
     sentence_ID = []
@@ -60,7 +60,8 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
     question_information = {}
 
     for questions in csv_questions:
-        if questions[1] == set_choice and 'History' in questions[2]:
+        print questions
+        if questions[1] == set_choice and 'WIKI' in questions[2]:
             #temp = questions[3].split()
             temp_string = questions[3]
             questions[3] = questions[3].replace(" ", "_")
@@ -72,7 +73,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
                 temp_answers.append(temp_string)
 
     for questions in csv_questions:
-        if questions[1] == set_choice and 'History' in questions[2]:
+        if questions[1] == set_choice and 'WIKI' in questions[2]:
             for sentence in questions[4]:
                 for k in range(len(temp_answers)):
                     sentence = sentence.replace(temp_answers[k], answers[k])
@@ -84,6 +85,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
                 #sentences.append(sentence)
                 #sentence_ID.append(questions[0])
 
+    print sentences
     with open(sentence_ID_path, 'wb') as f:
         cPickle.dump(sentence_ID, f)
 
@@ -112,7 +114,7 @@ def node_converter(node, target_path=None):
     return (address, word, deps)
 
 
-def dependency_parse(sentences_path, target_path=None):
+def dependency_parse(sentences_path, missing_list_path, target_path=None):
     """sentences_path is the path to a pickled list of strings
 
     Pickles a list to target_path, where each element corresponds to the 
@@ -144,7 +146,7 @@ def dependency_parse(sentences_path, target_path=None):
 
     parser = stanford.StanfordDependencyParser(java_options='-mx10000m')
     # We can set java options through java_options. They default to '-mx1000m'
-
+    missing_list = []
 
     batch_size = 100
     n_batches = (len(sentences) / batch_size) + 1
@@ -172,6 +174,8 @@ def dependency_parse(sentences_path, target_path=None):
                 print "\tParser dropped sentence {}: '{}' ".format(lo+i, sent)
                 parsed.insert(i, None)
 
+            missing_list.append(missing)
+
         output = []
         for sentence in parsed:
             # Handle missing values
@@ -197,6 +201,23 @@ def dependency_parse(sentences_path, target_path=None):
 
         with open(target_path, 'wb') as f:
             cPickle.dump(output_file_contents, f)
+    
+    with open(missing_list_path, 'wb') as f:
+        cPickle.dump(missing_list, f)
+
+"""def clear_lists(stanford_parsed_path, missing_list_path):
+    with open(stanford_parsed_path, 'rb') as stanford_parsed:
+        stanford_parsed = cPickle.load(stanford_parsed)
+
+    with open(missing_list, 'rb') as missing_list:
+        missing_list = cPickle.load(missing_list)
+
+    with open(sentence_ID_path, 'rb') as f:
+        sentences_ID = cPickle.load(f)
+
+    for item in stanford_parsed:
+        if item == None:"""
+
 
 
 def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
@@ -299,6 +320,10 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
     question_info_path = os.path.join(process_dir, "question_info")
     question_info_path = question_info_path + "_" + set_choice
 
+    # The list of the missing indexes
+    stanford_parsed_path = os.path.join(process_dir, "missing_list")
+    stanford_parsed_path = stanford_parsed_path + "_" + set_choice
+
     # All the stanford parsed sentences
     stanford_parsed_path = os.path.join(process_dir, "stanford_parsed")
     stanford_parsed_path = stanford_parsed_path + "_" + set_choice
@@ -322,11 +347,13 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
                                sentence_ID_path, sentences_path, 
                                answers_path, question_info_path)
     if start_from <= 3:
-        dependency_parse(sentences_path, stanford_parsed_path)
+        dependency_parse(sentences_path, missing_list_path, stanford_parsed_path)
     if start_from <= 4:
         vocabulary(stanford_parsed_path, answers_path,
                    vocabulary_path, dependency_path)
-    if start_from <= 5:
+    #if start_from <= 5:
+     #   clear_lists(stanford_parsed_path, missing_list_path, sentence_ID_path)
+    if start_from <= 6:
         create_tree(sentences_path, sentence_ID_path,
                     question_info_path, vocabulary_path,
                     dependency_path, stanford_parsed_path, tree_list_path)
