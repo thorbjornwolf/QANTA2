@@ -119,3 +119,15 @@ def split(data, n_slices=None):
     ci = [sum(cs[:i]) for i in xrange(len(cs))] + [sum(cs)]
 
     return (data[ci[i]:ci[i+1]] for i in xrange(len(ci) - 1))
+
+class Vocabulary(dict):
+    """dict extension for word-to-index mapping.
+    If queried for a word it doesn't contain, returns
+    its own length. That way, unknown words are mapped
+    to the highest index.
+    """
+    def __getitem__(self, key):
+        return self.get(key, super(Vocabulary, self).__len__())
+
+    def __len__(self):
+        return super(Vocabulary, self).__len__() + 1
