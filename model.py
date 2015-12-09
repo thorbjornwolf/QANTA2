@@ -28,8 +28,8 @@ class QANTA(object):
             If defined, the model's vectors are initialized from that file.
         """
         self.dimensionality = dimensionality
-        self.vocabulary = vocabulary
-        self.dependency_dict = dependency_dict
+        self.vocabulary = utils.Vocabulary(vocabulary)
+        self.dependency_dict = utils.Vocabulary(dependency_dict)
         self.learning_rate = learning_rate
         self.answers = []
 
