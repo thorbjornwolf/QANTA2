@@ -47,7 +47,7 @@
     + [x] Calculate objective function (eq. 6) (model.py:94)
     + [x] Do backpropagation through structure / AdaGrad (eq. 7 and supplementary reading)
 - [x] Use batches in training
-- [ ] Parallelize training
+- [x] Parallelize training
 - [ ] Consider whether the tree error is ever used in backpropagation, and why it is not if it isn't
 - [x] Build an overall method `QANTAModel.predict` that, given a tree returns the most likely answer (from the set of possible answers)
     + [ ] Consider using LogisticRegression in prediction, as in original QANTA
@@ -55,6 +55,13 @@
 	
 ## Evaluation
 - [ ] Evaluate the trained model's performance on the test set.
+
+## Usability
+- [ ] Make it crystal clear what the expected input format is for preprocessing
+- [ ] Make it crystal clear what the expected input format is for the QANTA model
+- [ ] Ensure that every method has documentation for all arguments, and for the output
+- [ ] Provide examples
+
 
 ## General checklist
 - Did you document your code well? Could your girlfriend/parent/computerphobic cousin tell what is going on in the code?
