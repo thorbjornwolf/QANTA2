@@ -31,6 +31,7 @@ def parse_question_csv(csv_path, target_path=None,
             handle.next()
 
         for i, line in enumerate(handle):
+            print line
             assert len(line) == 5
             line[4] = line[4].split(sub_delimiter)  # Question text
             assert 0 < len(line[4]) < 12, "Error in line {}".format(i + 2)
@@ -61,7 +62,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
 
     for questions in csv_questions:
         print questions
-        if questions[1] == set_choice and 'WIKI' in questions[2]:
+        if questions[1] == set_choice and 'History' in questions[2]:
             #temp = questions[3].split()
             temp_string = questions[3]
             questions[3] = questions[3].replace(" ", "_")
@@ -73,7 +74,7 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
                 temp_answers.append(temp_string)
 
     for questions in csv_questions:
-        if questions[1] == set_choice and 'WIKI' in questions[2]:
+        if questions[1] == set_choice and 'History' in questions[2]:
             for sentence in questions[4]:
                 for k in range(len(temp_answers)):
                     sentence = sentence.replace(temp_answers[k], answers[k])
@@ -335,6 +336,10 @@ def process(csv_file, output_file, set_choice, process_dir, start_from):
     # dictionary with all the dependencies
     dependency_path = os.path.join(process_dir, "dependency_vocabulary")
     dependency_path = dependency_path + "_" + set_choice
+
+     # list of all the tree
+    missing_list_path = os.path.join(process_dir, "missing_list")
+    missing_list_path = missing_list_path + "_" + set_choice
 
     # list of all the tree
     tree_list_path = os.path.join(process_dir, "tree_list")
