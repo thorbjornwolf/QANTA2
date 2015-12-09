@@ -20,6 +20,14 @@ def parse_question_csv(csv_path, target_path=None,
     skip_head is the number of lines to skip in the beginning of the file
     sub_delimiter is the extra delimiter in the 5th column of the file
 
+    The CSV file is expected to adhere to the following format:
+        header (ignored)
+        question id, split (test, train, dev), category, answer, sentences
+    where sentences is a long string, double quotes escaped by double quotes,
+        and the sentences themselves are separated by ' ||| '.
+
+    Output is in the format expected by questions_to_sentences.
+
     If target_path is defined, cPickles the result to that file.
     Otherwise returns the result.
     """
@@ -43,16 +51,35 @@ def parse_question_csv(csv_path, target_path=None,
 
 def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
                            sentences_path, answers_path, question_info_path):
-    """Takes the raw CSV-text as input and outputs each sentence from all the 
-    questions. Another list containing the question ID is also outputed."""
+    """Extracts question sentences from the data structure in csv_pickle.
+    It is expected to be a list of questions, where each question is a list
+    as follows:
+        [questionid, split, category, answer, sentences]
+    where
+        questionid is a unique number
+        split is one of 'train','test','dev'
+        category is e.g. "Entertainment"
+        answer is a string, e.g. "Monty Python"
+        sentences is a list of strings, each string containing a 
+            clue sentence.
+
+    Output is written directly to disk, as follows:
+        The extracted sentences are pickled to sentences_path
+        Sentence ids (the question id for the question containing the 
+            sentence) are pickled to sentence_ID_path. The sentence id at
+            index i is the question id for the sentence in index i in the 
+            list stored in sentences_path
+        Answers are likewise stored in a separate list in answers_path, and 
+            duplicated so as to match the unfolded sentence list
+        split, category, answer are also stored in a list of lists in
+            question_info_path
+    """
 
     with open(csv_pickle, 'rb') as csvfile:
         csv_questions = cPickle.load(csvfile)
 
     # Quick and dirty
     sent_replacements = (('1/2', ''),)
-
-    csv_questions = csv_questions
 
     temp_answers = []
     sentence_ID = []
@@ -83,10 +110,6 @@ def questions_to_sentences(csv_pickle, set_choice, sentence_ID_path,
                 sentences.append(sentence)
                 sentence_ID.append(questions[0])
 
-                #sentences.append(sentence)
-                #sentence_ID.append(questions[0])
-
-    print sentences
     with open(sentence_ID_path, 'wb') as f:
         cPickle.dump(sentence_ID, f)
 
@@ -136,6 +159,9 @@ def dependency_parse(sentences_path, missing_list_path, target_path=None):
     with open(sentences_path, 'rb') as sentencesfile:
         sentences = cPickle.load(sentencesfile)
 
+    # The config file is stored locally, and contains paths to 
+    # local resources that tend to differ from host to host, and 
+    # should not be part of source control.
     config = get_config('Stanford Parser')
     # E.g. '/usr/local/Cellar/stanford-parser/3.5.2/
     # libexec/stanford-parser.jar'
@@ -169,13 +195,17 @@ def dependency_parse(sentences_path, missing_list_path, target_path=None):
                    "Replacing with None.".format(n_missing))
             missing = find_missing(batch, parser.raw_parse_sents,
                                    n_missing=n_missing)
+            
             for i in sorted(missing):
                 sent = batch[i]
                 # TODO Write this to a log file
-                print "\tParser dropped sentence {}: '{}' ".format(lo+i, sent)
+                print "\tParser dropped sentence {}: '{}' ".format(i+lo, sent)
                 parsed.insert(i, None)
 
-            missing_list.append(missing)
+            # The missing indices are relative to the batch, not 
+            # the whole sentence list. Correct this by adding 'lo':
+            missing = [m + lo for m in missing]
+            missing_list.extend(missing)
 
         output = []
         for sentence in parsed:
@@ -205,20 +235,6 @@ def dependency_parse(sentences_path, missing_list_path, target_path=None):
     
     with open(missing_list_path, 'wb') as f:
         cPickle.dump(missing_list, f)
-
-"""def clear_lists(stanford_parsed_path, missing_list_path):
-    with open(stanford_parsed_path, 'rb') as stanford_parsed:
-        stanford_parsed = cPickle.load(stanford_parsed)
-
-    with open(missing_list, 'rb') as missing_list:
-        missing_list = cPickle.load(missing_list)
-
-    with open(sentence_ID_path, 'rb') as f:
-        sentences_ID = cPickle.load(f)
-
-    for item in stanford_parsed:
-        if item == None:"""
-
 
 
 def vocabulary(filen, answers_path, vocabulary_path=None, dependency_path=None):
