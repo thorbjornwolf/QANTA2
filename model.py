@@ -338,12 +338,16 @@ class QANTA(object):
 
             deltas[node] = node_delta
 
-    def predict(self, tree):
+    def predict(self, tree, n_best=None):
         """Predicts the answer to a question stated in tree.
 
         tree is a DependencyTree
+        n_best is how many of the closest answers that should 
+            be returned. If undefined, returns the single best
+            answer as a string. If defined, returns a list of
+            the n_best answers as strings.
 
-        Returns one of the strings in self.answers.
+        Returns a string or a list, depending on n_best
         """
         self.set_hidden_representations(tree)
         # Get sentence representation, L2 normalize it
@@ -353,22 +357,39 @@ class QANTA(object):
         # Get answer representations, L2 normalize them
         ans_idx = map(self.word2index, self.answers)
         candidates = self.We[ans_idx]
+        
         norm_factor = np.linalg.norm(candidates, axis=1)[:,np.newaxis]
         norm_candidates = candidates / norm_factor
 
         # Find closest vector using dot product
-        best_match_idx = np.argmax(norm_candidates.dot(pred_vector))
-        return self.answers[best_match_idx]
+        dotted = norm_candidates.dot(pred_vector)
+        if n_best is None:
+            best_match_idx = np.argmax(dotted)
+            return self.answers[best_match_idx]
+        # Get the indices of the n highest dot values
+        best_idx = dotted.flatten().argsort()[-n_best:]
+        # Reverse their order, as they are lowest to highest
+        best_idx = best_idx[::-1]
 
-    def predict_many(self, trees):
-        return [self.predict(t) for t in trees]
+        return [self.answers[i] for i in best_idx]
 
-    def get_accuracy(self, trees):
-        pred = self.predict_many(trees)
+    def predict_many(self, trees, n_best=None):
+        return [self.predict(t, n_best) for t in trees]
+
+    def get_accuracy(self, trees, within_n_best=1):
+        """Returns the accuracy for this model on the given
+        data.
+
+        trees is a list of DependencyTree
+        within_n_best is a positive integer. If the correct answer is
+            not within the within_n_best closest answers to the tree's 
+            representation, it counts as a miss. Otherwise a hit.
+        """
+        pred = self.predict_many(trees, n_best=within_n_best)
         truth = [t.answer for t in trees]
         n_correct = 0
         for p,t in zip(pred, truth):
-            if p == t: 
+            if t in p: 
                 n_correct += 1
 
         return float(n_correct) / len(pred)

@@ -175,13 +175,10 @@ class TestPredict(unittest.TestCase):
         vocab, deplist = extract_vocab_and_deps(trees)
         q = model.QANTA(d, vocab, deplist)
 
-        correct = 0
+        total_acc = 0
         for _ in range(runs):
             q.train(trees, n_epochs=n_epochs)
-            # Predict all answers
-            for t in trees:
-                correct += (q.predict(t) == t.answer)
-            # if _ > 0 and _ % 5 == 0:
-            #     print correct / float(runs * len(trees))
-        acc = correct / float(runs * len(trees))
-        self.assertTrue(acc > min_acc)
+            total_acc += q.get_accuracy(trees,1)
+  
+        acc = total_acc / float(runs)
+        self.assertGreater(acc, min_acc)
