@@ -4,6 +4,7 @@
 from multiprocess import Pool, cpu_count
 import numpy as np
 from time import time
+import gensim
 
 import utils
 
@@ -79,8 +80,8 @@ class QANTA(object):
         """
         from gensim.models import Word2Vec
         # C binary format
-        model = Word2Vec.load_word2vec_format(embeddings_file, binary=True)
-        for word, index in vocabulary.iteritems():
+        model = gensim.models.Word2Vec.load(path)
+        for word, index in self.vocabulary.iteritems():
             if word in model:
                 self.We[index] = model[word]
 
