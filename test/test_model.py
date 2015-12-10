@@ -47,8 +47,10 @@ class TestInitialization(unittest.TestCase):
 
         q = model.QANTA(d, vocab, deplist)
 
-        self.assertEquals(q.We.shape, (3, 5))
-        self.assertEquals(q.Wr.shape, (2, 5, 5))
+        # Word embeddings + 1 for unknown words
+        self.assertEquals(q.We.shape, (3+1, 5)) 
+        # Relation embeddings + 1 for unknown relations
+        self.assertEquals(q.Wr.shape, (2+1, 5, 5))
         self.assertEquals(q.Wv.shape, (5, 5))
         self.assertEquals(q.b.shape, (5,1))
 

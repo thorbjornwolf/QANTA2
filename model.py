@@ -346,13 +346,18 @@ class QANTA(object):
         Returns one of the strings in self.answers.
         """
         self.set_hidden_representations(tree)
+        # Get sentence representation, L2 normalize it
         pred_vector = np.sum([n.hidden_norm for n in tree.iter_nodes()], axis=0)
-        ptmp = pred_vector
         pred_vector = utils.normalize(pred_vector)
 
+        # Get answer representations, L2 normalize them
         ans_idx = map(self.word2index, self.answers)
         candidates = self.We[ans_idx]
-        best_match_idx = np.argmax(candidates.dot(pred_vector))
+        norm_factor = np.linalg.norm(candidates, axis=1)[:,np.newaxis]
+        norm_candidates = candidates / norm_factor
+
+        # Find closest vector using dot product
+        best_match_idx = np.argmax(norm_candidates.dot(pred_vector))
         return self.answers[best_match_idx]
 
     def predict_many(self, trees):
